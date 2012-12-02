@@ -1,9 +1,9 @@
 var nodeHook, boolHook, fixSpecified,
 	rclass = /[\t\r\n]/g,
 	rreturn = /\r/g,
-	rtype = /^(?:button|input)$/i,
-	rfocusable = /^(?:button|input|object|select|textarea)$/i,
-	rclickable = /^a(?:rea|)$/i,
+	rtype = /^(?:input|button)$/i,
+	rfocusable = /^(?:input|select|textarea|button|object)$/i,
+	rclickable = /^(?:a|area)$/i,
 	rboolean = /^(?:autofocus|autoplay|async|checked|controls|defer|disabled|hidden|loop|multiple|open|readonly|required|scoped|selected)$/i,
 	getSetAttribute = jQuery.support.getSetAttribute;
 
@@ -34,35 +34,37 @@ jQuery.fn.extend({
 	},
 
 	addClass: function( value ) {
-		var classNames, i, l, elem,
-			setClass, c, cl;
+		var classes, elem, cur, clazz, j,
+			i = 0,
+			len = this.length,
+			proceed = typeof value === "string" && value;
 
 		if ( jQuery.isFunction( value ) ) {
 			return this.each(function( j ) {
-				jQuery( this ).addClass( value.call(this, j, this.className) );
+				jQuery( this ).addClass( value.call( this, j, this.className ) );
 			});
 		}
 
-		if ( value && typeof value === "string" ) {
-			classNames = value.split( core_rspace );
+		if ( proceed ) {
+			// The disjunction here is for better compressibility (see removeClass)
+			classes = ( value || "" ).match( core_rnotwhite ) || [];
 
-			for ( i = 0, l = this.length; i < l; i++ ) {
+			for ( ; i < len; i++ ) {
 				elem = this[ i ];
+				cur = elem.nodeType === 1 && ( elem.className ?
+					( " " + elem.className + " " ).replace( rclass, " " ) :
+					" "
+				);
 
-				if ( elem.nodeType === 1 ) {
-					if ( !elem.className && classNames.length === 1 ) {
-						elem.className = value;
-
-					} else {
-						setClass = " " + elem.className + " ";
-
-						for ( c = 0, cl = classNames.length; c < cl; c++ ) {
-							if ( setClass.indexOf( " " + classNames[ c ] + " " ) < 0 ) {
-								setClass += classNames[ c ] + " ";
-							}
+				if ( cur ) {
+					j = 0;
+					while ( (clazz = classes[j++]) ) {
+						if ( cur.indexOf( " " + clazz + " " ) < 0 ) {
+							cur += clazz + " ";
 						}
-						elem.className = jQuery.trim( setClass );
 					}
+					elem.className = jQuery.trim( cur );
+
 				}
 			}
 		}
@@ -71,30 +73,36 @@ jQuery.fn.extend({
 	},
 
 	removeClass: function( value ) {
-		var removes, className, elem, c, cl, i, l;
+		var classes, elem, cur, clazz, j,
+			i = 0,
+			len = this.length,
+			proceed = arguments.length === 0 || typeof value === "string" && value;
 
 		if ( jQuery.isFunction( value ) ) {
 			return this.each(function( j ) {
-				jQuery( this ).removeClass( value.call(this, j, this.className) );
+				jQuery( this ).removeClass( value.call( this, j, this.className ) );
 			});
 		}
-		if ( (value && typeof value === "string") || !arguments.length ) {
-			removes = ( value || "" ).split( core_rspace );
+		if ( proceed ) {
+			classes = ( value || "" ).match( core_rnotwhite ) || [];
 
-			for ( i = 0, l = this.length; i < l; i++ ) {
+			for ( ; i < len; i++ ) {
 				elem = this[ i ];
-				if ( elem.nodeType === 1 && elem.className ) {
+				// This expression is here for better compressibility (see addClass)
+				cur = elem.nodeType === 1 && ( elem.className ?
+					( " " + elem.className + " " ).replace( rclass, " " ) :
+					""
+				);
 
-					className = (" " + elem.className + " ").replace( rclass, " " );
-
-					// loop over each item in the removal list
-					for ( c = 0, cl = removes.length; c < cl; c++ ) {
-						// Remove until there is nothing to remove,
-						while ( className.indexOf(" " + removes[ c ] + " ") >= 0 ) {
-							className = className.replace( " " + removes[ c ] + " " , " " );
+				if ( cur ) {
+					j = 0;
+					while ( (clazz = classes[j++]) ) {
+						// Remove *all* instances
+						while ( cur.indexOf( " " + clazz + " " ) >= 0 ) {
+							cur = cur.replace( " " + clazz + " ", " " );
 						}
 					}
-					elem.className = value ? jQuery.trim( className ) : "";
+					elem.className = value ? jQuery.trim( cur ) : "";
 				}
 			}
 		}
@@ -119,7 +127,7 @@ jQuery.fn.extend({
 					i = 0,
 					self = jQuery( this ),
 					state = stateVal,
-					classNames = value.split( core_rspace );
+					classNames = value.match( core_rnotwhite ) || [];
 
 				while ( (className = classNames[ i++ ]) ) {
 					// check each className given, space separated list
@@ -324,38 +332,32 @@ jQuery.extend({
 			ret = elem.getAttribute( name );
 
 			// Non-existent attributes return null, we normalize to undefined
-			return ret === null ?
+			return ret == null ?
 				undefined :
 				ret;
 		}
 	},
 
 	removeAttr: function( elem, value ) {
-		var propName, attrNames, name, isBool,
-			i = 0;
+		var name, propName, isBool,
+			i = 0,
+			attrNames = value && value.match( core_rnotwhite );
 
-		if ( value && elem.nodeType === 1 ) {
+		if ( attrNames && elem.nodeType === 1 ) {
+			while ( (name = attrNames[i++]) ) {
+				propName = jQuery.propFix[ name ] || name;
+				isBool = rboolean.test( name );
 
-			attrNames = value.split( core_rspace );
+				// See #9699 for explanation of this approach (setting first, then removal)
+				// Do not do this for boolean attributes (see #10870)
+				if ( !isBool ) {
+					jQuery.attr( elem, name, "" );
+				}
+				elem.removeAttribute( getSetAttribute ? name : propName );
 
-			for ( ; i < attrNames.length; i++ ) {
-				name = attrNames[ i ];
-
-				if ( name ) {
-					propName = jQuery.propFix[ name ] || name;
-					isBool = rboolean.test( name );
-
-					// See #9699 for explanation of this approach (setting first, then removal)
-					// Do not do this for boolean attributes (see #10870)
-					if ( !isBool ) {
-						jQuery.attr( elem, name, "" );
-					}
-					elem.removeAttribute( getSetAttribute ? name : propName );
-
-					// Set corresponding property to false for boolean attributes
-					if ( isBool && propName in elem ) {
-						elem[ propName ] = false;
-					}
+				// Set corresponding property to false for boolean attributes
+				if ( isBool && propName in elem ) {
+					elem[ propName ] = false;
 				}
 			}
 		}
@@ -563,17 +565,19 @@ if ( !jQuery.support.hrefNormalized ) {
 		jQuery.attrHooks[ name ] = jQuery.extend( jQuery.attrHooks[ name ], {
 			get: function( elem ) {
 				var ret = elem.getAttribute( name, 2 );
-				return ret === null ? undefined : ret;
+				return ret == null ? undefined : ret;
 			}
 		});
 	});
 
-	// link's href property should get the full normalized URL (#10299)
-	jQuery.propHooks.href = {
-		get: function( elem, name ) {
-			return elem.getAttribute( name, 4 );
-		}
-	};
+	// href/src property should get the full normalized URL (#10299/#12915)
+	jQuery.each([ "href", "src" ], function( i, name ) {
+		jQuery.propHooks[ name ] = {
+			get: function( elem ) {
+				return elem.getAttribute( name, 4 );
+			}
+		};
+	});
 }
 
 if ( !jQuery.support.style ) {

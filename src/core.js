@@ -15,13 +15,22 @@ var
 	// Map over the $ in case of overwrite
 	_$ = window.$,
 
+	// [[Class]] -> type pairs
+	class2type = {},
+
+	// List of deleted data cache ids, so we can reuse them
+	core_deletedIds = [],
+
+	core_version = "@VERSION",
+
 	// Save a reference to some core methods
-	core_push = Array.prototype.push,
-	core_slice = Array.prototype.slice,
-	core_indexOf = Array.prototype.indexOf,
-	core_toString = Object.prototype.toString,
-	core_hasOwn = Object.prototype.hasOwnProperty,
-	core_trim = String.prototype.trim,
+	core_concat = core_deletedIds.concat,
+	core_push = core_deletedIds.push,
+	core_slice = core_deletedIds.slice,
+	core_indexOf = core_deletedIds.indexOf,
+	core_toString = class2type.toString,
+	core_hasOwn = class2type.hasOwnProperty,
+	core_trim = core_version.trim,
 
 	// Define a local copy of jQuery
 	jQuery = function( selector, context ) {
@@ -30,21 +39,17 @@ var
 	},
 
 	// Used for matching numbers
-	core_pnum = /[\-+]?(?:\d*\.|)\d+(?:[eE][\-+]?\d+|)/.source,
+	core_pnum = /[+-]?(?:\d*\.|)\d+(?:[eE][+-]?\d+|)/.source,
 
-	// Used for detecting and trimming whitespace
-	core_rnotwhite = /\S/,
-	core_rspace = /\s+/,
-
-	// List of deleted data cache ids, so we can reuse them
-	core_deletedIds = [],
+	// Used for splitting on whitespace
+	core_rnotwhite = /\S+/g,
 
 	// Make sure we trim BOM and NBSP (here's looking at you, Safari 5.0 and IE)
 	rtrim = /^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g,
 
 	// A simple way to check for HTML strings
 	// Prioritize #id over <tag> to avoid XSS via location.hash (#9521)
-	rquickExpr = /^(?:[^#<]*(<[\w\W]+>)[^>]*$|#([\w\-]*)$)/,
+	rquickExpr = /^(?:[^#<]*(<[\w\W]+>)[^>]*|#([\w-]*))$/,
 
 	// Match a standalone tag
 	rsingleTag = /^<(\w+)\s*\/?>(?:<\/\1>|)$/,
@@ -53,7 +58,7 @@ var
 	rvalidchars = /^[\],:{}\s]*$/,
 	rvalidbraces = /(?:^|:|,)(?:\s*\[)+/g,
 	rvalidescape = /\\(?:["\\\/bfnrt]|u[\da-fA-F]{4})/g,
-	rvalidtokens = /"[^"\\\r\n]*"|true|false|null|-?(?:\d\d*\.|)\d+(?:[eE][\-+]?\d+|)/g,
+	rvalidtokens = /"[^"\\\r\n]*"|true|false|null|-?(?:\d+\.|)\d+(?:[eE][+-]?\d+|)/g,
 
 	// Matches dashed string for camelizing
 	rmsPrefix = /^-ms-/,
@@ -61,7 +66,7 @@ var
 
 	// Used by jQuery.camelCase as callback to replace()
 	fcamelCase = function( all, letter ) {
-		return ( letter + "" ).toUpperCase();
+		return letter.toUpperCase();
 	},
 
 	// The ready event handler and self cleanup method
@@ -75,12 +80,12 @@ var
 			document.detachEvent( "onreadystatechange", DOMContentLoaded );
 			jQuery.ready();
 		}
-	},
-
-	// [[Class]] -> type pairs
-	class2type = {};
+	};
 
 jQuery.fn = jQuery.prototype = {
+	// The current version of jQuery being used
+	jquery: core_version,
+
 	constructor: jQuery,
 	init: function( selector, context, rootjQuery ) {
 		var match, elem;
@@ -186,9 +191,6 @@ jQuery.fn = jQuery.prototype = {
 
 	// Start with an empty selector
 	selector: "",
-
-	// The current version of jQuery being used
-	jquery: "@VERSION",
 
 	// The default length of a jQuery object is 0
 	length: 0,
@@ -472,26 +474,31 @@ jQuery.extend({
 
 	// data: string of html
 	// context (optional): If specified, the fragment will be created in this context, defaults to document
-	// scripts (optional): If true, will include scripts passed in the html string
-	parseHTML: function( data, context, scripts ) {
-		var parsed;
+	// keepScripts (optional): If true, will include scripts passed in the html string
+	parseHTML: function( data, context, keepScripts ) {
 		if ( !data || typeof data !== "string" ) {
 			return null;
 		}
 		if ( typeof context === "boolean" ) {
-			scripts = context;
-			context = 0;
+			keepScripts = context;
+			context = false;
 		}
 		context = context || document;
 
+		var parsed = rsingleTag.exec( data ),
+			scripts = !keepScripts && [];
+
 		// Single tag
-		if ( (parsed = rsingleTag.exec( data )) ) {
+		if ( parsed ) {
 			return [ context.createElement( parsed[1] ) ];
 		}
 
-		parsed = jQuery.buildFragment( [ data ], context, scripts ? null : [] );
+		parsed = jQuery.buildFragment( [ data ], context, scripts );
+		if ( scripts ) {
+			jQuery( scripts ).remove();
+		}
 		return jQuery.merge( [],
-			(parsed.cacheable ? jQuery.clone( parsed.fragment ) : parsed.fragment).childNodes );
+			( parsed.cacheable ? jQuery.clone( parsed.fragment ) : parsed.fragment ).childNodes );
 	},
 
 	parseJSON: function( data ) {
@@ -554,7 +561,7 @@ jQuery.extend({
 	// Workarounds based on findings by Jim Driscoll
 	// http://weblogs.java.net/blog/driscoll/archive/2009/09/08/eval-javascript-global-context
 	globalEval: function( data ) {
-		if ( data && core_rnotwhite.test( data ) ) {
+		if ( data && jQuery.trim( data ) ) {
 			// We use execScript on Internet Explorer
 			// We use an anonymous function so that context is window
 			// rather than jQuery in Firefox
@@ -744,7 +751,7 @@ jQuery.extend({
 		}
 
 		// Flatten any nested arrays
-		return ret.concat.apply( [], ret );
+		return core_concat.apply( [], ret );
 	},
 
 	// A global GUID counter for objects
@@ -896,7 +903,7 @@ jQuery.ready.promise = function( obj ) {
 };
 
 // Populate the class2type map
-jQuery.each("Boolean Number String Function Array Date RegExp Object".split(" "), function(i, name) {
+jQuery.each("Boolean Number String Function Array Date RegExp Object Error".split(" "), function(i, name) {
 	class2type[ "[object " + name + "]" ] = name.toLowerCase();
 });
 

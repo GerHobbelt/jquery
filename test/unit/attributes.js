@@ -54,7 +54,7 @@ test( "jQuery.propFix integrity test", function() {
 });
 
 test( "attr(String)", function() {
-	expect( 47 );
+	expect( 48 );
 
 	equal( jQuery("#text1").attr("type"), "text", "Check for type attribute" );
 	equal( jQuery("#radio1").attr("type"), "radio", "Check for type attribute" );
@@ -94,6 +94,9 @@ test( "attr(String)", function() {
 	equal( jQuery("#tAnchor5").attr("href"), "#5", "Check for non-absolute href (an anchor)" );
 	jQuery("<a id='tAnchor6' href='#5' />").appendTo("#qunit-fixture");
 	equal( jQuery("#tAnchor5").prop("href"), jQuery("#tAnchor6").prop("href"), "Check for absolute href prop on an anchor" );
+
+	$("<script type='jquery/test' src='#5' id='scriptSrc'></script>").appendTo("#qunit-fixture");
+	equal( jQuery("#tAnchor5").prop("href"), jQuery("#scriptSrc").prop("src"), "Check for absolute src prop on a script" );
 
 	// list attribute is readonly by default in browsers that support it
 	jQuery("#list-test").attr( "list", "datalist" );
@@ -1049,38 +1052,36 @@ test( "addClass(Function) with incoming value", function() {
 });
 
 var testRemoveClass = function(valueObj) {
-	expect( 7 );
+	expect( 8 );
 
-	var $divs = jQuery("div");
+	var $set = jQuery("div"),
+		div = document.createElement("div");
 
-	$divs.addClass("test").removeClass( valueObj("test") );
+	$set.addClass("test").removeClass( valueObj("test") );
 
-	ok( !$divs.is(".test"), "Remove Class" );
+	ok( !$set.is(".test"), "Remove Class" );
 
-	QUnit.reset();
-	$divs = jQuery("div");
+	$set.addClass("test").addClass("foo").addClass("bar");
+	$set.removeClass( valueObj("test") ).removeClass( valueObj("bar") ).removeClass( valueObj("foo") );
 
-	$divs.addClass("test").addClass("foo").addClass("bar");
-	$divs.removeClass( valueObj("test") ).removeClass( valueObj("bar") ).removeClass( valueObj("foo") );
-
-	ok( !$divs.is(".test,.bar,.foo"), "Remove multiple classes" );
-
-	QUnit.reset();
-	$divs = jQuery("div");
+	ok( !$set.is(".test,.bar,.foo"), "Remove multiple classes" );
 
 	// Make sure that a null value doesn't cause problems
-	$divs.eq( 0 ).addClass("test").removeClass( valueObj( null ) );
-	ok( $divs.eq( 0 ).is(".test"), "Null value passed to removeClass" );
+	$set.eq( 0 ).addClass("expected").removeClass( valueObj( null ) );
+	ok( $set.eq( 0 ).is(".expected"), "Null value passed to removeClass" );
 
-	$divs.eq( 0 ).addClass("test").removeClass( valueObj("") );
-	ok( $divs.eq( 0 ).is(".test"), "Empty string passed to removeClass" );
+	$set.eq( 0 ).addClass("expected").removeClass( valueObj("") );
+	ok( $set.eq( 0 ).is(".expected"), "Empty string passed to removeClass" );
 
 	// using contents will get regular, text, and comment nodes
-	var j = jQuery("#nonnodes").contents();
-	j.removeClass( valueObj("asdf") );
-	ok( !j.hasClass("asdf"), "Check node,textnode,comment for removeClass" );
+	$set = jQuery("#nonnodes").contents();
+	$set.removeClass( valueObj("asdf") );
+	ok( !$set.hasClass("asdf"), "Check node,textnode,comment for removeClass" );
 
-	var div = document.createElement("div");
+
+	jQuery( div ).removeClass( valueObj("foo") );
+	strictEqual( jQuery( div ).attr("class"), undefined, "removeClass doesn't create a class attribute" );
+
 	div.className = " test foo ";
 
 	jQuery( div ).removeClass( valueObj("foo") );
@@ -1297,14 +1298,11 @@ test( "contents().hasClass() returns correct values", function() {
 });
 
 test( "coords returns correct values in IE6/IE7, see #10828", function() {
-	expect( 2 );
+	expect( 1 );
 
 	var area,
 		map = jQuery("<map />");
 
 	area = map.html("<area shape='rect' coords='0,0,0,0' href='#' alt='a' />").find("area");
 	equal( area.attr("coords"), "0,0,0,0", "did not retrieve coords correctly" );
-
-	area = map.html("<area shape='rect' href='#' alt='a' /></map>").find("area");
-	equal( area.attr("coords"), undefined, "did not retrieve coords correctly" );
 });
