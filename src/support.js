@@ -91,7 +91,9 @@ jQuery.support = (function() {
 		shrinkWrapBlocks: false,
 		reliableMarginRight: true,
 		boxSizingReliable: true,
-		pixelPosition: false
+		pixelPosition: false,
+		hasCanvas: false,
+		hasVML: false
 	};
 
 	// Make sure checked status is properly cloned
@@ -267,6 +269,10 @@ jQuery.support = (function() {
 	// Null elements to avoid leaks in IE
 	fragment.removeChild( div );
 	all = a = select = opt = input = fragment = div = null;
+
+	// These support checks require Modernizr to be loaded:
+	support.hasCanvas = (Modernizr && Modernizr['canvas']);
+	support.hasVML = (Modernizr && Modernizr['vml']);
 
 	return support;
 })();
