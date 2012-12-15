@@ -3,4 +3,4 @@
 	url = git@github.com:GerHobbelt/sizzle.git
 [submodule "test/qunit"]
 	path = test/qunit
-	url = git://github.com/jquery/qunit.git
+	url = git@github.com:GerHobbelt/qunit.git
