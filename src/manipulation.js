@@ -22,7 +22,6 @@ var nodeNames = "abbr|article|aside|audio|bdi|canvas|data|datalist|details|figca
 	rtbody = /<tbody/i,
 	rhtml = /<|&#?\w+;/,
 	rnoInnerhtml = /<(?:script|style|link)/i,
-	rnocache = /<(?:script|style|object|embed|applet|option)/i,
 	manipulation_rcheckableType = /^(?:checkbox|radio)$/i,
 	// checked="checked" or checked
 	rchecked = /checked\s*(?:[^=]|=\s*.checked.)/i,
@@ -142,7 +141,7 @@ jQuery.fn.extend({
 
 	before: function() {
 		return this.domManip( arguments, false, function( elem ) {
-			if ( !isDisconnected( this ) ) {
+			if ( this.parentNode ) {
 				this.parentNode.insertBefore( elem, this );
 			}
 		});
@@ -150,7 +149,7 @@ jQuery.fn.extend({
 
 	after: function() {
 		return this.domManip( arguments, false, function( elem ) {
-			if ( !isDisconnected( this ) ) {
+			if ( this.parentNode ) {
 				this.parentNode.insertBefore( elem, this.nextSibling );
 			}
 		});
@@ -250,41 +249,29 @@ jQuery.fn.extend({
 	},
 
 	replaceWith: function( value ) {
-		var self = this,
-			isFunc = jQuery.isFunction( value );
+		var isFunc = jQuery.isFunction( value );
 
 		// Make sure that the elements are removed from the DOM before they are inserted
 		// this can help fix replacing a parent with child elements
 		if ( !isFunc && typeof value !== "string" ) {
-			value = jQuery( value ).detach();
+			value = jQuery( value ).not( this ).detach();
 		}
 
-		this.each( function( i ) {
+		return this.domManip( [ value ], true, function( elem ) {
 			var next = this.nextSibling,
-				parent = this.parentNode,
-				// HTML argument replaced by "this" element
-				// 1. There were no supporting tests
-				// 2. There was no internal code relying on this
-				// 3. There was no documentation of an html argument
-				val = !isFunc ? value : value.call( this, i, this );
+				parent = this.parentNode;
 
-			if ( isDisconnected( this ) ) {
-				// for disconnected elements, we replace with the new content in the set. We use
-				// clone here to ensure that each replaced instance is unique
-				self[ i ] = jQuery( val ).clone()[ 0 ];
-				return;
-			}
+			if ( parent && this.nodeType === 1 || this.nodeType === 11 ) {
 
-			jQuery( this ).remove();
+				jQuery( this ).remove();
 
-			if ( next ) {
-				jQuery( next ).before( val );
-			} else {
-				jQuery( parent ).append( val );
+				if ( next ) {
+					next.parentNode.insertBefore( elem, next );
+				} else {
+					parent.appendChild( elem );
+				}
 			}
 		});
-
-		return this;
 	},
 
 	detach: function( selector ) {
@@ -296,9 +283,10 @@ jQuery.fn.extend({
 		// Flatten any nested arrays
 		args = core_concat.apply( [], args );
 
-		var fragment, first, results, scripts, hasScripts, iNoClone, node, doc,
+		var fragment, first, scripts, hasScripts, node, doc,
 			i = 0,
 			l = this.length,
+			iNoClone = l - 1,
 			value = args[0],
 			isFunction = jQuery.isFunction( value );
 
@@ -314,8 +302,9 @@ jQuery.fn.extend({
 		}
 
 		if ( this[0] ) {
-			results = jQuery.buildFragment( args, this );
-			fragment = results.fragment;
+			doc = this[0].ownerDocument;
+			fragment = doc.createDocumentFragment();
+			jQuery.clean( args, doc, fragment, undefined, this );
 			first = fragment.firstChild;
 
 			if ( fragment.childNodes.length === 1 ) {
@@ -329,9 +318,9 @@ jQuery.fn.extend({
 
 				// Use the original fragment for the last item instead of the first because it can end up
 				// being emptied incorrectly in certain situations (#8070).
-				// Fragments from the fragment cache must always be cloned and never used in place.
-				for ( iNoClone = results.cacheable || l - 1; i < l; i++ ) {
+				for ( ; i < l; i++ ) {
 					node = fragment;
+
 					if ( i !== iNoClone ) {
 						node = jQuery.clone( node, true, true );
 
@@ -340,11 +329,13 @@ jQuery.fn.extend({
 							jQuery.merge( scripts, getAll( node, "script" ) );
 						}
 					}
+
 					callback.call(
 						table && jQuery.nodeName( this[i], "table" ) ?
 							findOrAppend( this[i], "tbody" ) :
 							this[i],
-						node
+						node,
+						i
 					);
 				}
 
@@ -443,27 +434,27 @@ function cloneCopyEvent( src, dest ) {
 	}
 }
 
-function cloneFixAttributes( src, dest ) {
-	var nodeName;
+function fixCloneNodeIssues( src, dest ) {
+	var nodeName, data, e;
 
 	// We do not need to do anything for non-Elements
 	if ( dest.nodeType !== 1 ) {
 		return;
 	}
 
-	// clearAttributes removes the attributes, which we don't want,
-	// but also removes the attachEvent events, which we *do* want
-	if ( dest.clearAttributes ) {
-		dest.clearAttributes();
-	}
-
-	// mergeAttributes, in contrast, only merges back on the
-	// original attributes, not the events
-	if ( dest.mergeAttributes ) {
-		dest.mergeAttributes( src );
-	}
-
 	nodeName = dest.nodeName.toLowerCase();
+
+	// IE6-8 copies events bound via attachEvent when using cloneNode.
+	if ( !jQuery.support.noCloneEvent && dest[ jQuery.expando ] ) {
+		data = jQuery._data( dest );
+
+		for ( e in data.events ) {
+			jQuery.removeEvent( dest, e, data.handle );
+		}
+
+		// Event data gets referenced instead of copied if the expando gets copied too
+		dest.removeAttribute( jQuery.expando );
+	}
 
 	// IE blanks contents when cloning scripts, and tries to evaluate newly-set text
 	if ( nodeName === "script" && dest.text !== src.text ) {
@@ -501,61 +492,14 @@ function cloneFixAttributes( src, dest ) {
 	// IE6-8 fails to return the selected option to the default selected
 	// state when cloning options
 	} else if ( nodeName === "option" ) {
-		dest.selected = src.defaultSelected;
+		dest.defaultSelected = dest.selected = src.defaultSelected;
 
 	// IE6-8 fails to set the defaultValue to the correct value when
 	// cloning other types of input fields
 	} else if ( nodeName === "input" || nodeName === "textarea" ) {
 		dest.defaultValue = src.defaultValue;
 	}
-
-	// Event data gets referenced instead of copied if the expando
-	// gets copied too
-	dest.removeAttribute( jQuery.expando );
 }
-
-jQuery.buildFragment = function( args, context, scripts ) {
-	var fragment, cacheable, cachehit,
-		first = args[ 0 ];
-
-	// Set context from what may come in as undefined or a jQuery collection or a node
-	// Updated to fix #12266 where accessing context[0] could throw an exception in IE9/10 &
-	// also doubles as fix for #8950 where plain objects caused createDocumentFragment exception
-	context = context || document;
-	context = !context.nodeType && context[0] || context;
-	context = context.ownerDocument || context;
-
-	// Only cache "small" (1/2 KB) HTML strings that are associated with the main document
-	// Cloning options loses the selected state, so don't cache them
-	// IE 6 doesn't like it when you put <object> or <embed> elements in a fragment
-	// Also, WebKit does not clone 'checked' attributes on cloneNode, so don't cache
-	// Lastly, IE6,7,8 will not correctly reuse cached fragments that were created from unknown elems #10501
-	if ( args.length === 1 && typeof first === "string" && first.length < 512 && context === document &&
-		first.charAt(0) === "<" && !rnocache.test( first ) &&
-		(jQuery.support.checkClone || !rchecked.test( first )) &&
-		(jQuery.support.html5Clone || !rnoshimcache.test( first )) ) {
-
-		// Mark cacheable and look for a hit
-		cacheable = true;
-		fragment = jQuery.fragments[ first ];
-		cachehit = fragment !== undefined;
-	}
-
-	if ( !fragment ) {
-		fragment = context.createDocumentFragment();
-		jQuery.clean( args, context, fragment, scripts );
-
-		// Update the cache, but only store false
-		// unless this is a second parsing of the same content
-		if ( cacheable ) {
-			jQuery.fragments[ first ] = cachehit && fragment;
-		}
-	}
-
-	return { fragment: fragment, cacheable: cacheable };
-};
-
-jQuery.fragments = {};
 
 jQuery.each({
 	appendTo: "append",
@@ -569,21 +513,17 @@ jQuery.each({
 			i = 0,
 			ret = [],
 			insert = jQuery( selector ),
-			l = insert.length,
-			parent = this.length === 1 && this[0].parentNode;
+			last = insert.length - 1;
 
-		if ( (parent == null || parent && parent.nodeType === 11 && parent.childNodes.length === 1) && l === 1 ) {
-			insert[ original ]( this[0] );
-			return this;
-		} else {
-			for ( ; i < l; i++ ) {
-				elems = ( i > 0 ? this.clone(true) : this ).get();
-				jQuery( insert[i] )[ original ]( elems );
-				ret = ret.concat( elems );
-			}
+		for ( ; i <= last; i++ ) {
+			elems = i === last ? this : this.clone(true);
+			jQuery( insert[i] )[ original ]( elems );
 
-			return this.pushStack( ret );
+			// Modern browsers can apply jQuery collections as arrays, but oldIE needs a .get()
+			core_push.apply( ret, elems.get() );
 		}
+
+		return this.pushStack( ret );
 	};
 });
 
@@ -622,12 +562,8 @@ jQuery.extend({
 			inPage = jQuery.contains( elem.ownerDocument, elem );
 
 		if ( jQuery.support.html5Clone || jQuery.isXMLDoc(elem) || !rnoshimcache.test( "<" + elem.nodeName + ">" ) ) {
-			// Break the original-clone style connection in IE9/10 (#8909)
-			if ( !jQuery.support.clearCloneStyle && elem.nodeType === 1 ) {
-				i = ( window.getComputedStyle( elem, null ) || {} ).backgroundPosition;
-			}
-
 			clone = elem.cloneNode( true );
+
 		// IE<=8 does not properly clone detached, unknown element nodes
 		} else {
 			fragmentDiv.innerHTML = elem.outerHTML;
@@ -636,23 +572,16 @@ jQuery.extend({
 
 		if ( (!jQuery.support.noCloneEvent || !jQuery.support.noCloneChecked) &&
 				(elem.nodeType === 1 || elem.nodeType === 11) && !jQuery.isXMLDoc(elem) ) {
-			// IE copies events bound via attachEvent when using cloneNode.
-			// Calling detachEvent on the clone will also remove the events
-			// from the original. In order to get around this, we use some
-			// proprietary methods to clear the events. Thanks to MooTools
-			// guys for this hotness.
 
 			// We eschew Sizzle here for performance reasons: http://jsperf.com/getall-vs-sizzle/2
 			destElements = getAll( clone );
 			srcElements = getAll( elem );
 
-			// Weird iteration because IE will replace the length property
-			// with an element if you are cloning the body and one of the
-			// elements on the page has a name or id of "length"
+			// Fix all IE cloning issues
 			for ( i = 0; (node = srcElements[i]) != null; ++i ) {
 				// Ensure that the destination node is not null; Fixes #9587
 				if ( destElements[i] ) {
-					cloneFixAttributes( node, destElements[i] );
+					fixCloneNodeIssues( node, destElements[i] );
 				}
 			}
 		}
@@ -660,8 +589,8 @@ jQuery.extend({
 		// Copy the events from the original to the clone
 		if ( dataAndEvents ) {
 			if ( deepDataAndEvents ) {
-				destElements = getAll( clone );
-				srcElements = getAll( elem );
+				srcElements = srcElements || getAll( elem );
+				destElements = destElements || getAll( clone );
 
 				for ( i = 0; (node = srcElements[i]) != null; i++ ) {
 					cloneCopyEvent( node, destElements[i] );
@@ -683,10 +612,9 @@ jQuery.extend({
 		return clone;
 	},
 
-	clean: function( elems, context, fragment, scripts ) {
-		var elem, j, tmp, tag, wrap, tbody,
+	clean: function( elems, context, fragment, scripts, selection ) {
+		var elem, i, j, tmp, tag, wrap, tbody,
 			ret = [],
-			i = 0,
 			safe = context === document && safeFragment;
 
 		// Ensure that context is a document
@@ -778,7 +706,11 @@ jQuery.extend({
 				safe = jQuery.contains( elem.ownerDocument, elem );
 
 				// Append to fragment
-				fragment.appendChild( elem );
+				// #4087 - If origin and destination elements are the same, and this is
+				// that element, do not append to fragment
+				if ( !selection || jQuery.inArray( elem, selection ) === -1 ) {
+					fragment.appendChild( elem );
+				}
 				tmp = getAll( elem, "script" );
 
 				// Preserve script evaluation history

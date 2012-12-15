@@ -2,7 +2,6 @@
  * Resources
  *
  * https://gist.github.com/2489540
- *
  */
 
 module.exports = function( grunt ) {
@@ -82,7 +81,8 @@ module.exports = function( grunt ) {
 		lint: {
 			dist: "dist/jquery.js",
 			grunt: "grunt.js",
-			tests: "test/unit/**/*.js"
+			// TODO: Once .jshintignore is supported, use that instead.
+			tests: ["test/data/{test,testinit,testrunner}.js", "test/unit/**/*.js"]
 		},
 
 		jshint: (function() {
@@ -91,15 +91,26 @@ module.exports = function( grunt ) {
 			}
 
 			return {
-				grunt: jshintrc(),
-				dist: jshintrc( "src/" ),
-				tests: jshintrc( "test/" )
+				grunt: {
+					options: jshintrc()
+				},
+				dist: {
+					options: jshintrc( "src/" )
+				},
+				tests: {
+					options: jshintrc( "test/" )
+				}
 			};
 		})(),
 
 		qunit: {
 			files: "test/index.html"
 		},
+
+		testswarm: {
+			tests: "ajax attributes callbacks core css data deferred dimensions effects event manipulation offset queue selector serialize support traversing Sizzle".split(" ")
+		},
+
 		watch: {
 			files: [
 				"<config:lint.grunt>", "<config:lint.tests>",
@@ -107,6 +118,7 @@ module.exports = function( grunt ) {
 			],
 			tasks: "dev"
 		},
+
 		uglify: {
 			codegen: {
 				ascii_only: true
@@ -131,7 +143,7 @@ module.exports = function( grunt ) {
 			testUrls = [],
 			pull = /PR-(\d+)/.exec( commit ),
 			config = grunt.file.readJSON( configFile ).jquery,
-			tests = "ajax attributes callbacks core css data deferred dimensions effects event manipulation offset queue serialize support traversing Sizzle".split(" ");
+			tests = grunt.config([ this.name, "tests" ]);
 
 		if ( pull ) {
 			jobName = "jQuery pull <a href='https://github.com/jquery/jquery/pull/" +

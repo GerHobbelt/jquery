@@ -156,6 +156,30 @@ test( "attr(String)", function() {
 
 	$form = jQuery("#form").attr( "enctype", "multipart/form-data" );
 	equal( $form.prop("enctype"), "multipart/form-data", "Set the enctype of a form (encoding in IE6/7 #6743)" );
+
+});
+
+test( "attr(String) on cloned elements, #9646", function() {
+	expect( 4 );
+
+	var div,
+		input = jQuery("<input name='tester' />");
+
+	input.attr("name");
+
+	strictEqual( input.clone( true ).attr( "name", "test" )[ 0 ].name, "test", "Name attribute should be changed on cloned element" );
+
+	div = jQuery("<div id='tester' />");
+	div.attr("id");
+
+	strictEqual( div.clone( true ).attr( "id", "test" )[ 0 ].id, "test", "Id attribute should be changed on cloned element" );
+
+	input = jQuery("<input value='tester' />");
+	input.attr("value");
+
+	strictEqual( input.clone( true ).attr( "value", "test" )[ 0 ].value, "test", "Value attribute should be changed on cloned element" );
+
+	strictEqual( input.clone( true ).attr( "value", 42 )[ 0 ].value, "42", "Value attribute should be changed on cloned element" );
 });
 
 test( "attr(String) in XML Files", function() {
@@ -221,7 +245,7 @@ test( "attr(Hash)", function() {
 });
 
 test( "attr(String, Object)", function() {
-	expect( 81 );
+	expect( 79 );
 
 	var div = jQuery("div").attr("foo", "bar"),
 		fail = false;
@@ -379,17 +403,15 @@ test( "attr(String, Object)", function() {
 
 	// Type
 	var type = jQuery("#check2").attr("type");
-	var thrown = false;
 	try {
 		jQuery("#check2").attr( "type", "hidden" );
+		ok( true, "No exception thrown on input type change" );
 	} catch( e ) {
-		thrown = true;
+		ok( true, "Exception thrown on input type change: " + e );
 	}
-	ok( thrown, "Exception thrown when trying to change type property" );
-	equal( type, jQuery("#check2").attr("type"), "Verify that you can't change the type of an input element" );
 
 	var check = document.createElement("input");
-	thrown = true;
+	var thrown = true;
 	try {
 		jQuery( check ).attr( "type", "checkbox" );
 	} catch( e ) {
@@ -409,14 +431,12 @@ test( "attr(String, Object)", function() {
 	equal( "checkbox", check.attr("type"), "Verify that you can change the type of an input element that isn't in the DOM" );
 
 	var button = jQuery("#button");
-	thrown = false;
 	try {
 		button.attr( "type", "submit" );
+		ok( true, "No exception thrown on button type change" );
 	} catch( e ) {
-		thrown = true;
+		ok( true, "Exception thrown on button type change: " + e );
 	}
-	ok( thrown, "Exception thrown when trying to change type property" );
-	equal( "button", button.attr("type"), "Verify that you can't change the type of a button element" );
 
 	var $radio = jQuery( "<input>", {
 		"value": "sup",
@@ -978,7 +998,7 @@ test( "val(select) after form.reset() (Bug #2551)", function() {
 var testAddClass = function( valueObj ) {
 	expect( 9 );
 
-	var div = jQuery("div");
+	var div = jQuery("#qunit-fixture div");
 	div.addClass( valueObj("test") );
 	var pass = true;
 	for ( var i = 0; i < div.size(); i++ ) {
@@ -1029,8 +1049,8 @@ test( "addClass(Function)", function() {
 });
 
 test( "addClass(Function) with incoming value", function() {
-	expect( 54 );
-	var div = jQuery("div"),
+	expect( 52 );
+	var div = jQuery("#qunit-fixture div"),
 		old = div.map(function() {
 			return jQuery(this).attr("class") || "";
 		});
@@ -1054,7 +1074,7 @@ test( "addClass(Function) with incoming value", function() {
 var testRemoveClass = function(valueObj) {
 	expect( 8 );
 
-	var $set = jQuery("div"),
+	var $set = jQuery("#qunit-fixture div"),
 		div = document.createElement("div");
 
 	$set.addClass("test").removeClass( valueObj("test") );
@@ -1102,9 +1122,9 @@ test( "removeClass(Function) - simple", function() {
 });
 
 test( "removeClass(Function) with incoming value", function() {
-	expect( 54 );
+	expect( 52 );
 
-	var $divs = jQuery("div").addClass("test"), old = $divs.map(function() {
+	var $divs = jQuery("#qunit-fixture div").addClass("test"), old = $divs.map(function() {
 		return jQuery( this ).attr("class");
 	});
 

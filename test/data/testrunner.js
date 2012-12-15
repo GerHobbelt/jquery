@@ -3,10 +3,10 @@
  */
 jQuery.noConflict();
 
-// For checking globals pollution
-window[ jQuery.expando ] = undefined;
-// ...in Gecko
-this.getInterface = this.getInterface;
+// For checking globals pollution despite auto-created globals in various environments
+jQuery.each( [ jQuery.expando, "getInterface", "Packages", "java", "netscape" ], function( i, name ) {
+	window[ name ] = window[ name ];
+});
 
 // Expose Sizzle for Sizzle's selector tests
 // We remove Sizzle's globalization in jQuery
@@ -94,7 +94,7 @@ function testSubproject( label, url, risTests ) {
 			fixture = page.find("[id='qunit-fixture']");
 			fixtureHTML = fixture.html();
 			fixture.empty();
-			while ( fixture.length && !fixture.prevAll("[id^='qunit-']").length ) {
+			while ( fixture.length && !fixture.prevAll("[id='qunit']").length ) {
 				fixture = fixture.parent();
 			}
 			fixture = fixture.add( fixture.nextAll() );
@@ -112,7 +112,7 @@ function testSubproject( label, url, risTests ) {
 
 				// Replace the current fixture, including content outside of #qunit-fixture
 				var oldFixture = originaljQuery("#qunit-fixture");
-				while ( oldFixture.length && !oldFixture.prevAll("[id^='qunit-']").length ) {
+				while ( oldFixture.length && !oldFixture.prevAll("[id='qunit']").length ) {
 					oldFixture = oldFixture.parent();
 				}
 				oldFixture.nextAll().remove();
@@ -138,10 +138,10 @@ function testSubproject( label, url, risTests ) {
 // Explanation at http://perfectionkills.com/understanding-delete/#ie_bugs
 var Globals = (function() {
 	var globals = {};
-	return QUnit.config.noglobals ? {
+	return {
 		register: function( name ) {
 			globals[ name ] = true;
-			jQuery.globalEval( "var " + name );
+			jQuery.globalEval( "var " + name + " = undefined;" );
 		},
 		cleanup: function() {
 			var name,
@@ -153,9 +153,6 @@ var Globals = (function() {
 				"; } catch( x ) {}" );
 			}
 		}
-	} : {
-		register: jQuery.noop,
-		cleanup: jQuery.noop
 	};
 })();
 
@@ -235,7 +232,7 @@ var Globals = (function() {
 				// Since this method was called it means some data was
 				// expected to be found, but since there is nothing, fail early
 				// (instead of in teardown).
-				notStrictEqual( expando, undefined, 'Target for expectJqData must have an expando, for else there can be no data to expect.' );
+				notStrictEqual( expando, undefined, "Target for expectJqData must have an expando, for else there can be no data to expect." );
 			} else {
 				if ( expectedDataKeys[expando] ) {
 					expectedDataKeys[expando].push( key );
@@ -246,9 +243,9 @@ var Globals = (function() {
 		}
 	};
 	QUnit.config.urlConfig.push( {
-		id: 'jqdata',
-		label: 'Always check jQuery.data',
-		tooltip: 'Trigger "QUnit.expectJqData" detection for all tests instead of just the ones that call it'
+		id: "jqdata",
+		label: "Always check jQuery.data",
+		tooltip: "Trigger QUnit.expectJqData detection for all tests instead of just the ones that call it"
 	} );
 
 	/**
@@ -268,14 +265,14 @@ var Globals = (function() {
 				expectedKeys = expectedDataKeys[i];
 				actualKeys = jQuery.cache[i] ? keys( jQuery.cache[i] ) : jQuery.cache[i];
 				if ( !QUnit.equiv( expectedKeys, actualKeys ) ) {
-					deepEqual( actualKeys, expectedKeys, 'Expected keys exist in jQuery.cache' );
+					deepEqual( actualKeys, expectedKeys, "Expected keys exist in jQuery.cache" );
 				}
 				delete jQuery.cache[i];
 				delete expectedDataKeys[i];
 			}
 			// In case it was removed from cache before (or never there in the first place)
 			for ( i in expectedDataKeys ) {
-				deepEqual( expectedDataKeys[i], undefined, 'No unexpected keys were left in jQuery.cache (#' + i + ')' );
+				deepEqual( expectedDataKeys[i], undefined, "No unexpected keys were left in jQuery.cache (#" + i + ")" );
 				delete expectedDataKeys[i];
 			}
 		}
@@ -312,9 +309,17 @@ var Globals = (function() {
 		}
 		if ( jQuery.active !== undefined && jQuery.active !== oldActive ) {
 			equal( jQuery.active, 0, "No AJAX requests are still active" );
+			if ( ajaxTest.abort ) {
+				ajaxTest.abort("active requests");
+			}
 			oldActive = jQuery.active;
 		}
 	};
+
+	QUnit.done(function() {
+		// Remove out own fixtures outside #qunit-fixture
+		jQuery( "#nothiddendiv, #loadediframe, #dl" ).remove();
+	});
 
 	// jQuery-specific QUnit.reset
 	QUnit.reset = function() {
@@ -359,5 +364,5 @@ QUnit.config.requireExpects = true;
 		return;
 	}
 
-	document.write("<scr" + "ipt src='http://swarm.jquery.org/js/inject.js?" + (new Date).getTime() + "'></scr" + "ipt>");
+	document.write("<scr" + "ipt src='http://swarm.jquery.org/js/inject.js?" + (new Date()).getTime() + "'></scr" + "ipt>");
 })();

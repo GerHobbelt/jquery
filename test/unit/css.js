@@ -257,6 +257,22 @@ test("css(String, Object)", function() {
 	ok( success, "Setting RGBA values does not throw Error" );
 });
 
+test( "css(Array)", function() {
+	expect( 2 );
+
+	var expectedMany = {
+			"overflow": "visible",
+			"width": "16px"
+		},
+		expectedSingle = {
+			"width": "16px"
+		},
+		elem = jQuery("<div></div>").appendTo("#qunit-fixture");
+
+	deepEqual( elem.css( expectedMany ).css([ "overflow", "width" ]), expectedMany, "Getting multiple element array" );
+	deepEqual( elem.css( expectedSingle ).css([ "width" ]), expectedSingle, "Getting single element array" );
+});
+
 if ( !jQuery.support.opacity ) {
 	test("css(String, Object) for MSIE", function() {
 		expect( 5 );
@@ -574,19 +590,33 @@ test( "show() resolves correct default display for detached nodes", function(){
 test("show() resolves correct default display #10227", function() {
 	expect(2);
 
-	jQuery("html").append(
+	var body = jQuery("body");
+	body.append(
 		"<p id='ddisplay'>a<style>body{display:none}</style></p>"
 	);
 
-	equal( jQuery("body").css("display"), "none", "Initial display: none" );
+	equal( body.css("display"), "none", "Initial display: none" );
 
-	jQuery("body").show();
-
-	equal( jQuery("body").css("display"), "block", "Correct display: block" );
+	body.show();
+	equal( body.css("display"), "block", "Correct display: block" );
 
 	jQuery("#ddisplay").remove();
+	QUnit.expectJqData( body[0], "olddisplay" );
+});
 
-	jQuery.cache = {};
+test("show() resolves correct default display when iframe display:none #12904", function() {
+	expect(2);
+
+	var ddisplay = jQuery(
+		"<p id='ddisplay'>a<style>p{display:none}iframe{display:none !important}</style></p>"
+	).appendTo("body");
+
+	equal( ddisplay.css("display"), "none", "Initial display: none" );
+
+	ddisplay.show();
+	equal( ddisplay.css("display"), "block", "Correct display: block" );
+
+	ddisplay.remove();
 });
 
 test("toggle()", function() {
@@ -793,11 +823,20 @@ if ( jQuery.fn.offset ) {
 	});
 }
 
-test("Do not append px to 'fill-opacity' #9548", function() {
-	expect( 1 );
+test("Do not append px (#9548, #12990)", function() {
+	expect( 2 );
 
-	var $div = jQuery("<div>").appendTo("#qunit-fixture").css("fill-opacity", 1);
-	equal( $div.css("fill-opacity"), 1, "Do not append px to 'fill-opacity'");
+	var $div = jQuery("<div>").appendTo("#qunit-fixture");
+
+	$div.css( "fill-opacity", 1 );
+	equal( $div.css("fill-opacity"), 1, "Do not append px to 'fill-opacity'" );
+
+	$div.css( "column-count", 1 );
+	if ( $div.css("column-count") ) {
+		equal( $div.css("column-count"), 1, "Do not append px to 'column-count'" );
+	} else {
+		ok( true, "No support for column-count CSS property" );
+	}
 });
 
 test("css('width') and css('height') should respect box-sizing, see #11004", function() {
@@ -871,17 +910,94 @@ test( "cssHooks - expand", function() {
 test( "css opacity consistency across browsers (#12685)", function() {
 	expect( 4 );
 
-    var fixture = jQuery("#qunit-fixture"),
-        style = jQuery("<style>.opacityWithSpaces_t12685 { opacity: 0.1; filter: alpha(opacity = 10); } .opacityNoSpaces_t12685 { opacity: 0.2; filter: alpha(opacity=20); }</style>").appendTo(fixture),
-        el = jQuery("<div class='opacityWithSpaces_t12685'></div>").appendTo(fixture);
-        
-    equal( Math.round( el.css("opacity") * 100 ), 10, "opacity from style sheet (filter:alpha with spaces)" );
-    el.removeClass("opacityWithSpaces_t12685").addClass("opacityNoSpaces_t12685");
-    equal( Math.round( el.css("opacity") * 100 ), 20, "opacity from style sheet (filter:alpha without spaces)" );
-    el.css( "opacity", 0.3 );
-    equal( Math.round( el.css("opacity") * 100 ), 30, "override opacity" );
-    el.css( "opacity", "" );
-    equal( Math.round( el.css("opacity") * 100 ), 20, "remove opacity override" );
+		var fixture = jQuery("#qunit-fixture"),
+				style = jQuery("<style>.opacityWithSpaces_t12685 { opacity: 0.1; filter: alpha(opacity = 10); } .opacityNoSpaces_t12685 { opacity: 0.2; filter: alpha(opacity=20); }</style>").appendTo(fixture),
+				el = jQuery("<div class='opacityWithSpaces_t12685'></div>").appendTo(fixture);
+
+		equal( Math.round( el.css("opacity") * 100 ), 10, "opacity from style sheet (filter:alpha with spaces)" );
+		el.removeClass("opacityWithSpaces_t12685").addClass("opacityNoSpaces_t12685");
+		equal( Math.round( el.css("opacity") * 100 ), 20, "opacity from style sheet (filter:alpha without spaces)" );
+		el.css( "opacity", 0.3 );
+		equal( Math.round( el.css("opacity") * 100 ), 30, "override opacity" );
+		el.css( "opacity", "" );
+		equal( Math.round( el.css("opacity") * 100 ), 20, "remove opacity override" );
+});
+
+asyncTest( "Clearing a Cloned Element's Style Shouldn't Clear the Original Element's Style (#8908)", 16, function() {
+	var baseUrl = document.location.href.replace( /([^\/]*)$/, "" ),
+	styles = [{
+			name: "backgroundAttachment",
+			value: ["fixed"],
+			expected: [ "scroll" ]
+		},{
+			name: "backgroundColor",
+			value: [ "rgb(255, 0, 0)", "rgb(255,0,0)", "#ff0000" ],
+			expected: ["transparent"]
+		}, {
+			// Firefox returns auto's value
+			name: "backgroundImage",
+			value: [ "url('test.png')", "url(" + baseUrl + "test.png)", "url(\"" + baseUrl + "test.png\")" ],
+			expected: [ "none", "url(\"http://static.jquery.com/files/rocker/images/logo_jquery_215x53.gif\")" ]
+		}, {
+			name: "backgroundPosition",
+			value: ["5% 5%"],
+			expected: [ "0% 0%", "-1000px 0px", "-1000px 0%" ]
+		}, {
+			// Firefox returns no-repeat
+			name: "backgroundRepeat",
+			value: ["repeat-y"],
+			expected: [ "repeat", "no-repeat" ]
+		}, {
+			name: "backgroundClip",
+			value: ["padding-box"],
+			expected: ["border-box"]
+		}, {
+			name: "backgroundOrigin",
+			value: ["content-box"],
+			expected: ["padding-box"]
+		}, {
+			name: "backgroundSize",
+			value: ["80px 60px"],
+			expected: [ "auto auto" ]
+	}];
+
+	jQuery.each( styles, function(index, style) {
+		var $clone, $clonedChildren,
+			$source = jQuery( "#firstp" ),
+			source = $source[ 0 ],
+			$children = $source.children();
+
+		style.expected = style.expected.concat( [ "", "auto" ] );
+
+		if ( source.style[ style.name ] === undefined ) {
+			ok( true, style.name +  ": style isn't supported and therefore not an issue" );
+			ok( true );
+			return true;
+		}
+
+		$source.css( style.name, style.value[ 0 ] );
+		$children.css( style.name, style.value[ 0 ] );
+
+		$clone = $source.clone();
+		$clonedChildren = $clone.children();
+
+		$clone.css( style.name, "" );
+		$clonedChildren.css( style.name, "" );
+
+		window.setTimeout(function() {
+			ok( jQuery.inArray( $source.css( style.name ) !== -1, style.value ),
+				"Clearing clone.css() doesn't affect source.css(): " + style.name +
+				"; result: " + $source.css( style.name ) +
+				"; expected: " + style.value.join( "," ) );
+
+			ok( jQuery.inArray( $children.css( style.name ) !== -1, style.value ),
+				"Clearing clonedChildren.css() doesn't affect children.css(): " + style.name +
+				"; result: " + $children.css( style.name ) +
+				"; expected: " + style.value.join( "," ) );
+		}, 100 );
+	});
+
+	window.setTimeout( start, 1000 );
 });
 
 }

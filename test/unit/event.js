@@ -1052,7 +1052,7 @@ test("trigger(type, [data], [fn])", function() {
 	form.remove();
 });
 
-test( "submit event bubbles on copied forms (#11649)", function(){
+test( "submit event bubbles on copied forms (#11649)", function() {
 	expect( 3 );
 
 	var $formByClone, $formByHTML,
@@ -1076,7 +1076,7 @@ test( "submit event bubbles on copied forms (#11649)", function(){
 
 	// Copy the form via .clone() and .html()
 	$formByClone = $testForm.clone( true, true ).removeAttr("id");
-	$formByHTML = jQuery( $fixture.html() ).filter("#testForm").removeAttr("id");
+	$formByHTML = jQuery( jQuery.parseHTML($fixture.html()) ).filter("#testForm").removeAttr("id");
 	$wrapperDiv.append( $formByClone, $formByHTML );
 
 	// Check submit bubbling on the copied forms
@@ -1109,7 +1109,7 @@ test( "change event bubbles on copied forms (#11796)", function(){
 
 	// Copy the form via .clone() and .html()
 	$formByClone = $form.clone( true, true ).removeAttr("id");
-	$formByHTML = jQuery( $fixture.html() ).filter("#form").removeAttr("id");
+	$formByHTML = jQuery( jQuery.parseHTML($fixture.html()) ).filter("#form").removeAttr("id");
 	$wrapperDiv.append( $formByClone, $formByHTML );
 
 	// Check change bubbling on the copied forms
@@ -1491,8 +1491,8 @@ test(".live()/.die()", function() {
 
 	var submit = 0, div = 0, livea = 0, liveb = 0;
 
-	jQuery("div").live("submit", function(){ submit++; return false; });
-	jQuery("div").live("click", function(){ div++; });
+	jQuery("#qunit-fixture div").live("submit", function(){ submit++; return false; });
+	jQuery("#qunit-fixture div").live("click", function(){ div++; });
 	jQuery("div#nothiddendiv").live("click", function(){ livea++; });
 	jQuery("div#nothiddendivchild").live("click", function(){ liveb++; });
 
@@ -1571,13 +1571,13 @@ test(".live()/.die()", function() {
 
 	jQuery("div#nothiddendivchild").die("click");
 	jQuery("div#nothiddendiv").die("click");
-	jQuery("div").die("click");
-	jQuery("div").die("submit");
+	jQuery("#qunit-fixture div").die("click");
+	jQuery("#qunit-fixture div").die("submit");
 
 	// Test binding with a different context
 	var clicked = 0, container = jQuery("#qunit-fixture")[0];
 	jQuery("#foo", container).live("click", function(e){ clicked++; });
-	jQuery("div").trigger("click");
+	jQuery("#qunit-fixture div").trigger("click");
 	jQuery("#foo").trigger("click");
 	jQuery("#qunit-fixture").trigger("click");
 	jQuery("body").trigger("click");
@@ -2022,8 +2022,8 @@ test(".delegate()/.undelegate()", function() {
 
 	var submit = 0, div = 0, livea = 0, liveb = 0;
 
-	jQuery("#body").delegate("div", "submit", function(){ submit++; return false; });
-	jQuery("#body").delegate("div", "click", function(){ div++; });
+	jQuery("#body").delegate("#qunit-fixture div", "submit", function(){ submit++; return false; });
+	jQuery("#body").delegate("#qunit-fixture div", "click", function(){ div++; });
 	jQuery("#body").delegate("div#nothiddendiv", "click", function(){ livea++; });
 	jQuery("#body").delegate("div#nothiddendivchild", "click", function(){ liveb++; });
 
@@ -2102,13 +2102,13 @@ test(".delegate()/.undelegate()", function() {
 
 	jQuery("#body").undelegate("div#nothiddendivchild", "click");
 	jQuery("#body").undelegate("div#nothiddendiv", "click");
-	jQuery("#body").undelegate("div", "click");
-	jQuery("#body").undelegate("div", "submit");
+	jQuery("#body").undelegate("#qunit-fixture div", "click");
+	jQuery("#body").undelegate("#qunit-fixture div", "submit");
 
 	// Test binding with a different context
 	var clicked = 0, container = jQuery("#qunit-fixture")[0];
 	jQuery("#qunit-fixture").delegate("#foo", "click", function(e){ clicked++; });
-	jQuery("div").trigger("click");
+	jQuery("#qunit-fixture div").trigger("click");
 	jQuery("#foo").trigger("click");
 	jQuery("#qunit-fixture").trigger("click");
 	jQuery("body").trigger("click");
@@ -3104,4 +3104,53 @@ test( "Namespace preserved when passed an Event (#12739)", function() {
 	equal( triggered, 3, "foo.bar triggered" );
 });
 
+test( "make sure events cloned correctly", 18, function() {
+	var clone,
+		fixture = jQuery("#qunit-fixture"),
+		checkbox = jQuery("#check1"),
+		p = jQuery("#firstp");
 
+	fixture.on( "click change", function( event, result ) {
+		ok( result,  event.type + " on original element is fired" );
+
+	}).on( "click", "#firstp", function( event, result ) {
+		ok( result, "Click on original child element though delegation is fired" );
+
+	}).on( "change", "#check1", function( event, result ) {
+		ok( result, "Change on original child element though delegation is fired" );
+	});
+
+	p.on("click", function( event, result ) {
+		ok( true, "Click on original child element is fired" );
+	});
+
+	checkbox.on("change", function( event, result ) {
+		ok( true, "Change on original child element is fired" );
+	});
+
+	fixture.clone().click().change(); // 0 events should be fired
+
+	clone = fixture.clone( true );
+
+	clone.find("p:first").trigger( "click", true ); // 3 events should fire
+	clone.find("#check1").trigger( "change", true ); // 3 events should fire
+	clone.remove();
+
+	clone = fixture.clone( true, true );
+	clone.find("p:first").trigger( "click", true ); // 3 events should fire
+	clone.find("#check1").trigger( "change", true ); // 3 events should fire
+
+	fixture.off();
+	p.off();
+	checkbox.off();
+
+	p.click(); // 0 should be fired
+	checkbox.change(); // 0 should be fired
+
+	clone.find("p:first").trigger( "click", true ); // 3 events should fire
+	clone.find("#check1").trigger( "change", true ); // 3 events should fire
+	clone.remove();
+
+	clone.find("p:first").click(); // 0 should be fired
+	clone.find("#check1").change(); // 0 events should fire
+});
