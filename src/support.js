@@ -267,8 +267,8 @@ jQuery.support = (function() {
 	all = a = select = opt = input = fragment = div = null;
 
 	// These support checks require Modernizr to be loaded:
-	support.hasCanvas = (typeof Modernizr !== 'undefined' && Modernizr['canvas']);
-	support.hasVML = (typeof Modernizr !== 'undefined' && Modernizr['vml']);
+	support.hasCanvas = (typeof Modernizr !== "undefined" && Modernizr["canvas"]);
+	support.hasVML = (typeof Modernizr !== "undefined" && Modernizr["vml"]);
 
 	return support;
 })();
