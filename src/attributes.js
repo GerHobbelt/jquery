@@ -1,10 +1,12 @@
-var nodeHook, boolHook, fixSpecified,
+var nodeHook, boolHook,
 	rclass = /[\t\r\n]/g,
 	rreturn = /\r/g,
 	rfocusable = /^(?:input|select|textarea|button|object)$/i,
 	rclickable = /^(?:a|area)$/i,
-	rboolean = /^(?:autofocus|autoplay|async|checked|controls|defer|disabled|hidden|loop|multiple|open|readonly|required|scoped|selected)$/i,
-	getSetAttribute = jQuery.support.getSetAttribute;
+	rboolean = /^(?:checked|selected|autofocus|autoplay|async|controls|defer|disabled|hidden|loop|multiple|open|readonly|required|scoped)$/i,
+	ruseDefault = /^(?:checked|selected)$/i,
+	getSetAttribute = jQuery.support.getSetAttribute,
+	getSetInput = jQuery.support.input;
 
 jQuery.fn.extend({
 	attr: function( name, value ) {
@@ -338,26 +340,31 @@ jQuery.extend({
 	},
 
 	removeAttr: function( elem, value ) {
-		var name, propName, isBool,
+		var name, propName,
 			i = 0,
 			attrNames = value && value.match( core_rnotwhite );
 
 		if ( attrNames && elem.nodeType === 1 ) {
 			while ( (name = attrNames[i++]) ) {
 				propName = jQuery.propFix[ name ] || name;
-				isBool = rboolean.test( name );
+
+				// Boolean attributes get special treatment (#10870)
+				if ( rboolean.test( name ) ) {
+					// Set corresponding property to false for boolean attributes
+					// Also clear defaultChecked/defaultSelected (if appropriate) for IE<8
+					if ( !getSetAttribute && ruseDefault.test( name ) ) {
+						elem[ jQuery.camelCase( "default-" + name ) ] =
+							elem[ propName ] = false;
+					} else {
+						elem[ propName ] = false;
+					}
 
 				// See #9699 for explanation of this approach (setting first, then removal)
-				// Do not do this for boolean attributes (see #10870)
-				if ( !isBool ) {
+				} else {
 					jQuery.attr( elem, name, "" );
 				}
-				elem.removeAttribute( getSetAttribute ? name : propName );
 
-				// Set corresponding property to false for boolean attributes
-				if ( isBool && propName in elem ) {
-					elem[ propName ] = false;
-				}
+				elem.removeAttribute( getSetAttribute ? name : propName );
 			}
 		}
 	},
@@ -375,25 +382,6 @@ jQuery.extend({
 					}
 					return value;
 				}
-			}
-		},
-		// Use the value property for back compat
-		// Use the nodeHook for button elements in IE6/7 (#1954)
-		value: {
-			get: function( elem, name ) {
-				if ( nodeHook && jQuery.nodeName( elem, "button" ) ) {
-					return nodeHook.get( elem, name );
-				}
-				return name in elem ?
-					elem.value :
-					null;
-			},
-			set: function( elem, value, name ) {
-				if ( nodeHook && jQuery.nodeName( elem, "button" ) ) {
-					return nodeHook.set( elem, value, name );
-				}
-				// Does not return so that setAttribute is also used
-				elem.value = value;
 			}
 		}
 	},
@@ -468,50 +456,79 @@ jQuery.extend({
 // Hook for boolean attributes
 boolHook = {
 	get: function( elem, name ) {
-		// Align boolean attributes with corresponding properties
-		// Fall back to attribute presence where some booleans are not supported
-		var attrNode,
-			property = jQuery.prop( elem, name );
-		return property === true || typeof property !== "boolean" && ( attrNode = elem.getAttributeNode(name) ) && attrNode.nodeValue !== false ?
+		var
+			// Use .prop to determine if this attribute is understood as boolean
+			prop = jQuery.prop( elem, name ),
+
+			// Fetch it accordingly
+			attr = typeof prop === "boolean" && elem.getAttribute( name ),
+			detail = typeof prop === "boolean" ?
+
+				getSetInput && getSetAttribute ?
+					attr != null :
+					// oldIE fabricates an empty string for missing boolean attributes
+					// and conflates checked/selected into attroperties
+					ruseDefault.test( name ) ?
+						elem[ jQuery.camelCase( "default-" + name ) ] :
+						!!attr :
+
+				// fetch an attribute node for properties not recognized as boolean
+				elem.getAttributeNode( name );
+
+		return detail && detail.value !== false ?
 			name.toLowerCase() :
 			undefined;
 	},
 	set: function( elem, value, name ) {
-		var propName;
 		if ( value === false ) {
 			// Remove boolean attributes when set to false
 			jQuery.removeAttr( elem, name );
-		} else {
-			// value is true since we know at this point it's type boolean and not false
-			// Set boolean attributes to the same name and set the DOM property
-			propName = jQuery.propFix[ name ] || name;
-			if ( propName in elem ) {
-				// Only set the IDL specifically if it already exists on the element
-				elem[ propName ] = true;
-			}
+		} else if ( getSetInput && getSetAttribute || !ruseDefault.test( name ) ) {
+			// IE<8 needs the *property* name
+			elem.setAttribute( !getSetAttribute && jQuery.propFix[ name ] || name, name );
 
-			elem.setAttribute( name, name.toLowerCase() );
+		// Use defaultChecked and defaultSelected for oldIE
+		} else {
+			elem[ jQuery.camelCase( "default-" + name ) ] = true;
 		}
+
 		return name;
 	}
 };
 
+// fix oldIE value attroperty
+if ( !getSetInput || !getSetAttribute ) {
+	jQuery.attrHooks.value = {
+		get: function( elem, name ) {
+			var ret = elem.getAttributeNode( name );
+			return jQuery.nodeName( elem, "input" ) ?
+
+				// Ignore the value *property* by using defaultValue
+				elem.defaultValue :
+
+				ret && ret.specified ? ret.value : undefined;
+		},
+		set: function( elem, value, name ) {
+			if ( jQuery.nodeName( elem, "input" ) ) {
+				// Does not return so that setAttribute is also used
+				elem.defaultValue = value;
+			} else {
+				// Use nodeHook if defined (#1954); otherwise setAttribute is fine
+				return nodeHook && nodeHook.set( elem, value, name );
+			}
+		}
+	};
+}
+
 // IE6/7 do not support getting/setting some attributes with get/setAttribute
 if ( !getSetAttribute ) {
-
-	fixSpecified = {
-		name: true,
-		id: true,
-		coords: true
-	};
 
 	// Use this for any attribute in IE6/7
 	// This fixes almost every IE6/7 issue
 	nodeHook = jQuery.valHooks.button = {
 		get: function( elem, name ) {
-			var ret;
-			ret = elem.getAttributeNode( name );
-			return ret && ( fixSpecified[ name ] ? ret.value !== "" : ret.specified ) ?
+			var ret = elem.getAttributeNode( name );
+			return ret && ( name === "id" || name === "name" || name === "coords" ? ret.value !== "" : ret.specified ) ?
 				ret.value :
 				undefined;
 		},
@@ -519,18 +536,26 @@ if ( !getSetAttribute ) {
 			// Set the existing or create a new attribute node
 			var ret = elem.getAttributeNode( name );
 			if ( !ret ) {
-				ret = elem.ownerDocument.createAttribute( name );
-				elem.setAttributeNode( ret );
+				elem.setAttributeNode(
+					(ret = elem.ownerDocument.createAttribute( name ))
+				);
 			}
 
 			ret.value = value += "";
 
-			// Break association with cloned elements (#9646)
-			if ( name !== "value" && value !== elem.getAttribute( name ) ) {
-				elem.setAttribute( name, value );
-			}
+			// Break association with cloned elements by also using setAttribute (#9646)
+			return name === "value" || value === elem.getAttribute( name ) ?
+				value :
+				undefined;
+		}
+	};
 
-			return value;
+	// Set contenteditable to false on removals(#10429)
+	// Setting to empty string throws an error as an invalid value
+	jQuery.attrHooks.contenteditable = {
+		get: nodeHook.get,
+		set: function( elem, value, name ) {
+			nodeHook.set( elem, value === "" ? false : value, name );
 		}
 	};
 
@@ -546,18 +571,6 @@ if ( !getSetAttribute ) {
 			}
 		});
 	});
-
-	// Set contenteditable to false on removals(#10429)
-	// Setting to empty string throws an error as an invalid value
-	jQuery.attrHooks.contenteditable = {
-		get: nodeHook.get,
-		set: function( elem, value, name ) {
-			if ( value === "" ) {
-				value = "false";
-			}
-			nodeHook.set( elem, value, name );
-		}
-	};
 }
 
 
