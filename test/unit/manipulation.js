@@ -395,13 +395,13 @@ var testAppendForObject = function( valueObj, isFragment ) {
 
 var testAppend = function( valueObj ) {
 
-	expect( 59 );
+	expect( 78 );
 
 	testAppendForObject( valueObj, false );
 	testAppendForObject( valueObj, true );
 
 	var defaultText, result, message, iframe, iframeDoc, j, d,
-		$input, $radioChecked, $radioUnchecked, $radioParent;
+		$input, $radioChecked, $radioUnchecked, $radioParent, $map, $table;
 
 	defaultText = "Try them out:";
 	result = jQuery("#first").append( valueObj("<b>buga</b>") );
@@ -446,17 +446,28 @@ var testAppend = function( valueObj ) {
 	jQuery("<fieldset/>").appendTo("#form").append( valueObj("<legend id='legend'>test</legend>") );
 	t( "Append legend", "#legend", [ "legend" ] );
 
+	$map = jQuery("<map/>").append( valueObj("<area id='map01' shape='rect' coords='50,50,150,150' href='http://www.jquery.com/' alt='jQuery'>") );
+
+	equal( $map[ 0 ].childNodes.length, 1, "The area was inserted." );
+	equal( $map[ 0 ].firstChild.nodeName.toLowerCase(), "area", "The area was inserted." );
+
 	jQuery("#select1").append( valueObj("<OPTION>Test</OPTION>") );
 	equal( jQuery("#select1 option:last").text(), "Test", "Appending OPTION (all caps)" );
 
-	jQuery("#table").append( valueObj("<colgroup></colgroup>") );
-	equal( jQuery("#table colgroup").length, 1, "Append colgroup" );
+	jQuery("#select1").append( valueObj("<optgroup label='optgroup'><option>optgroup</option></optgroup>") );
+	equal( jQuery("#select1 optgroup").attr("label"), "optgroup", "Label attribute in newly inserted optgroup is correct" );
+	equal( jQuery("#select1 option:last").text(), "optgroup", "Appending optgroup" );
+
+	$table = jQuery("#table");
+
+	jQuery.each( "thead tbody tfoot colgroup caption tr th td".split(" "), function( i, name ) {
+		$table.append( valueObj( "<" + name + "/>" ) );
+		equal( $table.find( name ).length, 1, "Append " + name );
+		ok( jQuery.parseHTML( "<" + name + "/>" ).length, name + " wrapped correctly" );
+	});
 
 	jQuery("#table colgroup").append( valueObj("<col/>") );
 	equal( jQuery("#table colgroup col").length, 1, "Append col" );
-
-	jQuery("#table").append( valueObj("<caption></caption>") );
-	equal( jQuery("#table caption").length, 1, "Append caption" );
 
 	jQuery("#form")
 		.append( valueObj("<select id='appendSelect1'></select>") )
@@ -464,6 +475,7 @@ var testAppend = function( valueObj ) {
 	t( "Append Select", "#appendSelect1, #appendSelect2", [ "appendSelect1", "appendSelect2" ] );
 
 	equal( "Two nodes", jQuery("<div />").append( "Two", " nodes" ).text(), "Appending two text nodes (#4011)" );
+	equal( jQuery("<div />").append( "1", "", 3 ).text(), "13", "If median is false-like value, subsequent arguments should not be ignored" );
 
 	// using contents will get comments regular, text, and comment nodes
 	j = jQuery("#nonnodes").contents();
@@ -615,48 +627,6 @@ test( "replaceWith([]) where replacing element requires cloning", function () {
 		"Make sure replacing elements were cloned" );
 });
 
-
-test( "append the same fragment with events (Bug #6997, 5566)", function() {
-
-	var element, clone,
-		doExtra = !jQuery.support.noCloneEvent && document["fireEvent"];
-
-	expect( 2 + ( doExtra ? 1 : 0 ) );
-
-	stop();
-
-	// This patch modified the way that cloning occurs in IE; we need to make sure that
-	// native event handlers on the original object don't get disturbed when they are
-	// modified on the clone
-	if ( doExtra ) {
-		element = jQuery("div:first").click(function() {
-			ok( true, "Event exists on original after being unbound on clone" );
-			jQuery( this ).unbind("click");
-		});
-		clone = element.clone( true ).unbind("click");
-		clone[ 0 ].fireEvent("onclick");
-		element[ 0 ].fireEvent("onclick");
-
-		// manually clean up detached elements
-		clone.remove();
-	}
-
-	element = jQuery("<a class='test6997'></a>").click(function() {
-		ok( true, "Append second element events work" );
-	});
-
-	jQuery("#listWithTabIndex li").append( element )
-		.find("a.test6997").eq( 1 ).click();
-
-	element = jQuery("<li class='test6997'></li>").click(function() {
-		ok( true, "Before second element events work" );
-		start();
-	});
-
-	jQuery("#listWithTabIndex li").before( element );
-	jQuery("#listWithTabIndex li.test6997").eq( 1 ).click();
-});
-
 test( "append HTML5 sectioning elements (Bug #6485)", function() {
 
 	expect( 2 );
@@ -670,24 +640,6 @@ test( "append HTML5 sectioning elements (Bug #6485)", function() {
 
 	equal( article.get( 0 ).style.fontSize, "10px", "HTML5 elements are styleable" );
 	equal( aside.length, 1, "HTML5 elements do not collapse their children" );
-});
-
-test( "jQuery.clean, #12392", function() {
-
-	expect( 6 );
-
-	var elems = jQuery.clean( [ "<div>test div</div>", "<p>test p</p>" ] );
-
-	ok( elems[ 0 ].parentNode == null || elems[ 0 ].parentNode.nodeType === 11, "parentNode should be documentFragment or null" );
-	ok( elems[ 1 ].parentNode == null || elems[ 1 ].parentNode.nodeType === 11, "parentNode should be documentFragment or null" );
-
-	equal( elems[ 0 ].innerHTML, "test div", "Content should be preserved" );
-	equal( elems[ 1 ].innerHTML, "test p", "Content should be preserved" );
-
-	equal( jQuery.clean([ "<span><span>" ]).length, 1, "Incorrect html-strings should not break anything" );
-
-	elems = jQuery.clean([ "<td><td>" ]);
-	ok( elems[ 1 ].parentNode == null || elems[ 1 ].parentNode.nodeType === 11, "parentNode should be documentFragment or null" );
 });
 
 if ( jQuery.css ) {
@@ -2098,17 +2050,21 @@ test( "Ensure oldIE creates a new set on appendTo (#8894)", function() {
 
 test( "html() - script exceptions bubble (#11743)", function() {
 
-	expect( 2 );
+	expect( 3 );
 
 	raises(function() {
-		jQuery("#qunit-fixture").html("<script>undefined(); ok( false, 'error not thrown' );</script>");
-		ok( false, "error ignored" );
-	}, "exception bubbled from inline script" );
+		jQuery("#qunit-fixture").html("<script>undefined(); ok( false, 'Exception not thrown' );</script>");
+		ok( false, "Exception ignored" );
+	}, "Exception bubbled from inline script" );
 
-	raises(function() {
-		jQuery("#qunit-fixture").html("<script src='data/badcall.js'></script>");
-		ok( false, "error ignored" );
-	}, "exception bubbled from remote script" );
+	var onerror = window.onerror;
+	window.onerror = function() {
+		ok( true, "Exception thrown in remote script" );
+		window.onerror = onerror;
+	};
+
+	jQuery("#qunit-fixture").html("<script src='data/badcall.js'></script>");
+	ok( true, "Exception ignored" );
 });
 
 test( "checked state is cloned with clone()", function() {
@@ -2237,4 +2193,22 @@ test( "insertAfter, insertBefore, etc do not work when destination is original e
 		jQuery("#test4087-simple").remove();
 		jQuery("#test4087-multiple").remove();
 	});
+});
+
+test( "Index for function argument should be received (#13094)", 2, function() {
+	var i = 0;
+
+	jQuery("<div/><div/>").before(function( index ) {
+		equal( index, i++, "Index should be correct" );
+	});
+
+});
+
+test( "Make sure jQuery.fn.remove can work on elements in documentFragment", 1, function() {
+	var fragment = document.createDocumentFragment(),
+		div = fragment.appendChild( document.createElement("div") );
+
+	jQuery( div ).remove();
+
+	equal( fragment.childNodes.length, 0, "div element was removed from documentFragment" );
 });

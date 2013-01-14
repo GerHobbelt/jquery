@@ -1,40 +1,23 @@
-/**
- * Resources
- *
- * https://gist.github.com/2489540
- */
-
 module.exports = function( grunt ) {
 
 	"use strict";
 
-	// readOptionalJSON
-	// by Ben Alman
-	// https://gist.github.com/2876125
-	function readOptionalJSON( filepath ) {
-		var data = {};
-		try {
-			data = grunt.file.readJSON( filepath );
-			grunt.verbose.write( "Reading " + filepath + "..." ).ok();
-		} catch(e) {}
-		return data;
-	}
-
-	var file = grunt.file,
-		log = grunt.log,
-		verbose = grunt.verbose,
-		config = grunt.config,
-		distpaths = [
+	var distpaths = [
 			"dist/jquery.js",
+			"dist/jquery.min.map",
 			"dist/jquery.min.js"
-		];
+		],
+		readOptionalJSON = function( filepath ) {
+			var data = {};
+			try {
+				data = grunt.file.readJSON( filepath );
+			} catch(e) {}
+			return data;
+		};
 
 	grunt.initConfig({
-		pkg: "<json:package.json>",
+		pkg: grunt.file.readJSON("package.json"),
 		dst: readOptionalJSON("dist/.destination.json"),
-		meta: {
-			banner: "/*! jQuery v<%= pkg.version %> jquery.com | jquery.org/license */"
-		},
 		compare_size: {
 			files: distpaths
 		},
@@ -74,37 +57,28 @@ module.exports = function( grunt ) {
 				"src/outro.js"
 			]
 		},
-		min: {
-			"dist/jquery.min.js": [ "<banner>", "dist/jquery.js" ]
-		},
 
-		lint: {
-			dist: "dist/jquery.js",
-			grunt: "grunt.js",
-			// TODO: Once .jshintignore is supported, use that instead.
-			tests: ["test/data/{test,testinit,testrunner}.js", "test/unit/**/*.js"]
-		},
-
-		jshint: (function() {
-			function jshintrc( path ) {
-				return readOptionalJSON( (path || "") + ".jshintrc" ) || {};
-			}
-
-			return {
-				grunt: {
-					options: jshintrc()
-				},
-				dist: {
-					options: jshintrc( "src/" )
-				},
-				tests: {
-					options: jshintrc( "test/" )
+		jshint: {
+			dist: {
+				src: [ "dist/jquery.js" ],
+				options: {
+					jshintrc: "src/.jshintrc"
 				}
-			};
-		})(),
-
-		qunit: {
-			files: "test/index.html"
+			},
+			grunt: {
+				src: [ "Gruntfile.js" ],
+				options: {
+					jshintrc: ".jshintrc"
+				}
+			},
+			tests: {
+				// TODO: Once .jshintignore is supported, use that instead.
+				// issue located here: https://github.com/gruntjs/grunt-contrib-jshint/issues/1
+				src: [ "test/data/{test,testinit,testrunner}.js", "test/unit/**/*.js" ],
+				options: {
+					jshintrc: "test/.jshintrc"
+				}
+			}
 		},
 
 		testswarm: {
@@ -112,30 +86,25 @@ module.exports = function( grunt ) {
 		},
 
 		watch: {
-			files: [
-				"<config:lint.grunt>", "<config:lint.tests>",
-				"src/**/*.js"
-			],
+			files: [ "<%= jshint.grunt.src %>", "<%= jshint.tests.src %>", "src/**/*.js" ],
 			tasks: "dev"
 		},
 
 		uglify: {
-			codegen: {
-				ascii_only: true
+			all: {
+				files: {
+					"dist/jquery.min.js": [ "dist/jquery.js" ]
+				},
+				options: {
+					banner: "/*! jQuery v<%= pkg.version %> | (c) 2005, 2013 jQuery Foundation, Inc. | jquery.org/license */",
+					sourceMap: "dist/jquery.min.map",
+					beautify: {
+						ascii_only: true
+					}
+				}
 			}
 		}
 	});
-
-	// Default grunt.
-	grunt.registerTask( "default", "update_submodules selector build:*:* lint min dist:* compare_size" );
-
-	// Short list as a high frequency watch task
-	grunt.registerTask( "dev", "selector build:*:* lint" );
-
-	// Load grunt tasks from NPM packages
-	grunt.loadNpmTasks( "grunt-compare-size" );
-	grunt.loadNpmTasks( "grunt-git-authors" );
-	grunt.loadNpmTasks( "grunt-update-submodules" );
 
 	grunt.registerTask( "testswarm", function( commit, configFile ) {
 		var jobName,
@@ -169,7 +138,7 @@ module.exports = function( grunt ) {
 			runMax: config.runMax,
 			"runNames[]": tests,
 			"runUrls[]": testUrls,
-			"browserSets[]": config.browserSets
+			"browserSets[]": "popular-no-old-ie"
 		});
 	});
 
@@ -179,8 +148,8 @@ module.exports = function( grunt ) {
 		var name = this.file.dest,
 				files = this.file.src,
 				sizzle = {
-					api: file.read( files[0] ),
-					src: file.read( files[1] )
+					api: grunt.file.read( files[0] ),
+					src: grunt.file.read( files[1] )
 				},
 				compiled, parts;
 
@@ -218,11 +187,10 @@ module.exports = function( grunt ) {
 		// Rejoin the pieces
 		compiled = parts.join("");
 
+		grunt.verbose.write("Injected sizzle-jquery.js into sizzle.js");
 
-		verbose.write("Injected sizzle-jquery.js into sizzle.js");
-
-		// Write concatenated source to file
-		file.write( name, compiled );
+		// Write concatenated source to file, and ensure newline-only termination
+		grunt.file.write( name, compiled.replace( /\x0d\x0a/g, "\x0a" ) );
 
 		// Fail task if errors were logged.
 		if ( this.errorCount ) {
@@ -230,7 +198,7 @@ module.exports = function( grunt ) {
 		}
 
 		// Otherwise, print a success message.
-		log.writeln( "File '" + name + "' created." );
+		grunt.log.writeln( "File '" + name + "' created." );
 	});
 
 
@@ -251,9 +219,9 @@ module.exports = function( grunt ) {
 
 		grunt.log.writeln( "Creating custom build...\n" );
 
-		grunt.utils.spawn({
+		grunt.util.spawn({
 			cmd: process.platform === "win32" ? "grunt.cmd" : "grunt",
-			args: [ "build:*:*:" + modules, "min" ]
+			args: [ "build:*:*:" + modules, "uglify", "dist" ]
 		}, function( err, result ) {
 			if ( err ) {
 				grunt.verbose.error();
@@ -261,7 +229,7 @@ module.exports = function( grunt ) {
 				return;
 			}
 
-			grunt.log.writeln( result.replace("Done, without errors.", "") );
+			grunt.log.writeln( result.stdout.replace("Done, without errors.", "") );
 
 			done();
 		});
@@ -279,9 +247,10 @@ module.exports = function( grunt ) {
 				optIn = !modules["*"],
 				explicit = optIn || Object.keys(modules).length > 1,
 				name = this.file.dest,
+				src = this.file.srcRaw,
 				deps = {},
 				excluded = {},
-				version = config( "pkg.version" ),
+				version = grunt.config( "pkg.version" ),
 				excluder = function( flag, needsFlag ) {
 					// optIn defaults implicit behavior to weak exclusion
 					if ( optIn && !modules[ flag ] && !modules[ "+" + flag ] ) {
@@ -325,7 +294,7 @@ module.exports = function( grunt ) {
 			//  *:*:-css           all except css and dependents (explicit > implicit)
 			//  *:*:-css:+effects  same (excludes effects because explicit include is trumped by explicit exclude of dependency)
 			//  *:+effects         none except effects and its dependencies (explicit include trumps implicit exclude of dependency)
-			this.file.src.forEach(function( filepath ) {
+			src.forEach(function( filepath ) {
 				var flag = filepath.flag;
 
 				if ( flag ) {
@@ -351,7 +320,7 @@ module.exports = function( grunt ) {
 
 
 			// conditionally concatenate source
-			this.file.src.forEach(function( filepath ) {
+			src.forEach(function( filepath ) {
 				var flag = filepath.flag,
 						specified = false,
 						omit = false,
@@ -389,7 +358,7 @@ module.exports = function( grunt ) {
 				}
 
 				if ( !omit ) {
-					compiled += file.read( filepath );
+					compiled += grunt.file.read( filepath );
 				}
 			});
 
@@ -408,7 +377,7 @@ module.exports = function( grunt ) {
 				});
 
 			// Write concatenated source to file
-			file.write( name, compiled );
+			grunt.file.write( name, compiled );
 
 			// Fail task if errors were logged.
 			if ( this.errorCount ) {
@@ -416,16 +385,16 @@ module.exports = function( grunt ) {
 			}
 
 			// Otherwise, print a success message.
-			log.writeln( "File '" + name + "' created." );
+			grunt.log.writeln( "File '" + name + "' created." );
 		});
 
-	// Allow custom dist file locations
+	// Process files for distribution
 	grunt.registerTask( "dist", function() {
 		var flags, paths, stored;
 
 		// Check for stored destination paths
 		// ( set in dist/.destination.json )
-		stored = Object.keys( config("dst") );
+		stored = Object.keys( grunt.config("dst") );
 
 		// Allow command line input as well
 		flags = Object.keys( this.flags );
@@ -438,47 +407,69 @@ module.exports = function( grunt ) {
 		// Ensure the dist files are pure ASCII
 		var fs = require("fs"),
 			nonascii = false;
+
 		distpaths.forEach(function( filename ) {
-			var buf = fs.readFileSync( filename, "utf8" ),
-			i, c;
-			if ( buf.length !== Buffer.byteLength( buf, "utf8" ) ) {
-				log.writeln( filename + ": Non-ASCII characters detected:" );
-				for ( i = 0; i < buf.length; i++ ) {
-					c = buf.charCodeAt( i );
+			var i, c,
+				text = fs.readFileSync( filename, "utf8" );
+
+			// Ensure files use only \n for line endings, not \r\n
+			if ( /\x0d\x0a/.test( text ) ) {
+				grunt.log.writeln( filename + ": Incorrect line endings (\\r\\n)" );
+				nonascii = true;
+			}
+
+			// Ensure only ASCII chars so script tags don't need a charset attribute
+			if ( text.length !== Buffer.byteLength( text, "utf8" ) ) {
+				grunt.log.writeln( filename + ": Non-ASCII characters detected:" );
+				for ( i = 0; i < text.length; i++ ) {
+					c = text.charCodeAt( i );
 					if ( c > 127 ) {
-						log.writeln( "- position " + i + ": " + c );
-						log.writeln( "-- " + buf.substring( i - 20, i + 20 ) );
-						nonascii = true;
+						grunt.log.writeln( "- position " + i + ": " + c );
+						grunt.log.writeln( "-- " + text.substring( i - 20, i + 20 ) );
+						break;
 					}
 				}
+				nonascii = true;
 			}
-		});
-		if ( nonascii ) {
-			return false;
-		}
 
-		// Proceed only if there are actual
-		// paths to write to
-		if ( paths.length ) {
+			// Modify map/min so that it points to files in the same folder;
+			// see https://github.com/mishoo/UglifyJS2/issues/47
+			if ( /\.map$/.test( filename ) ) {
+				text = text.replace( /"dist\//g, "\"" );
+				fs.writeFileSync( filename, text, "utf-8" );
+			} else if ( /\.min\.js$/.test( filename ) ) {
+				text = text.replace( /sourceMappingURL=dist\//, "sourceMappingURL=" );
+				fs.writeFileSync( filename, text, "utf-8" );
+			}
 
-			// 'distpaths' is declared at the top of the
-			// module.exports function scope. It is an array
-			// of default files that jQuery creates
-			distpaths.forEach(function( filename ) {
-				paths.forEach(function( path ) {
-					var created;
+			// Optionally copy dist files to other locations
+			paths.forEach(function( path ) {
+				var created;
 
-					if ( !/\/$/.test( path ) ) {
-						path += "/";
-					}
+				if ( !/\/$/.test( path ) ) {
+					path += "/";
+				}
 
-					created = path + filename.replace( "dist/", "" );
-
-					file.write( created, file.read(filename) );
-
-					log.writeln( "File '" + created + "' created." );
-				});
+				created = path + filename.replace( "dist/", "" );
+				grunt.file.write( created, text );
+				grunt.log.writeln( "File '" + created + "' created." );
 			});
-		}
+		});
+
+		return !nonascii;
 	});
+
+	// Load grunt tasks from NPM packages
+	grunt.loadNpmTasks("grunt-compare-size");
+	grunt.loadNpmTasks("grunt-git-authors");
+	grunt.loadNpmTasks("grunt-update-submodules");
+	grunt.loadNpmTasks("grunt-contrib-watch");
+	grunt.loadNpmTasks("grunt-contrib-jshint");
+	grunt.loadNpmTasks("grunt-contrib-uglify");
+
+	// Default grunt
+	grunt.registerTask( "default", [ "update_submodules", "selector", "build:*:*", "jshint", "uglify", "dist:*", "compare_size" ] );
+
+	// Short list as a high frequency watch task
+	grunt.registerTask( "dev", [ "selector", "build:*:*", "jshint" ] );
 };

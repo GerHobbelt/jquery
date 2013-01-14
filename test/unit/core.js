@@ -243,7 +243,7 @@ test("trim", function() {
 });
 
 test("type", function() {
-	expect( 24 );
+	expect( 28 );
 
 	equal( jQuery.type(null), "null", "null" );
 	equal( jQuery.type(undefined), "undefined", "undefined" );
@@ -269,6 +269,16 @@ test("type", function() {
 	equal( jQuery.type(document.body), "object", "Element" );
 	equal( jQuery.type(document.createTextNode("foo")), "object", "TextNode" );
 	equal( jQuery.type(document.getElementsByTagName("*")), "object", "NodeList" );
+
+	// Avoid Lint complaints
+	var MyString = String;
+	var MyNumber = Number;
+	var MyBoolean = Boolean;
+	var MyObject = Object;
+	equal( jQuery.type(new MyBoolean(true)), "boolean", "Boolean" );
+	equal( jQuery.type(new MyNumber(1)), "number", "Number" );
+	equal( jQuery.type(new MyString("a")), "string", "String" );
+	equal( jQuery.type(new MyObject()), "object", "Object" );
 });
 
 asyncTest("isPlainObject", function() {
@@ -1200,7 +1210,7 @@ test("jQuery.proxy", function(){
 });
 
 test("jQuery.parseHTML", function() {
-	expect( 13 );
+	expect( 17 );
 
 	var html, nodes;
 
@@ -1227,6 +1237,15 @@ test("jQuery.parseHTML", function() {
 	equal( jQuery.parseHTML( "\t<div></div>" )[0].nodeValue, "\t", "Preserve leading whitespace" );
 
 	equal( jQuery.parseHTML(" <div/> ")[0].nodeType, 3, "Leading spaces are treated as text nodes (#11290)" );
+
+	html = jQuery.parseHTML( "<div>test div</div>" );
+
+	equal( html[ 0 ].parentNode.nodeType, 11, "parentNode should be documentFragment" );
+	equal( html[ 0 ].innerHTML, "test div", "Content should be preserved" );
+
+	equal( jQuery.parseHTML("<span><span>").length, 1, "Incorrect html-strings should not break anything" );
+	equal( jQuery.parseHTML("<td><td>")[ 1 ].parentNode.nodeType, 11,
+		"parentNode should be documentFragment for wrapMap (variable in manipulation module) elements too" );
 });
 
 test("jQuery.parseJSON", function(){
