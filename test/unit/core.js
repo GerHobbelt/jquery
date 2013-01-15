@@ -1239,13 +1239,11 @@ test("jQuery.parseHTML", function() {
 	equal( jQuery.parseHTML(" <div/> ")[0].nodeType, 3, "Leading spaces are treated as text nodes (#11290)" );
 
 	html = jQuery.parseHTML( "<div>test div</div>" );
-
 	equal( html[ 0 ].parentNode.nodeType, 11, "parentNode should be documentFragment" );
 	equal( html[ 0 ].innerHTML, "test div", "Content should be preserved" );
 
 	equal( jQuery.parseHTML("<span><span>").length, 1, "Incorrect html-strings should not break anything" );
-	equal( jQuery.parseHTML("<td><td>")[ 1 ].parentNode.nodeType, 11,
-		"parentNode should be documentFragment for wrapMap (variable in manipulation module) elements too" );
+	equal( jQuery.parseHTML("<td><td>")[ 1 ].parentNode.nodeType, 11, "parentNode should be documentFragment" );
 });
 
 test("jQuery.parseJSON", function(){

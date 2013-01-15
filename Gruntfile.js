@@ -138,7 +138,7 @@ module.exports = function( grunt ) {
 			runMax: config.runMax,
 			"runNames[]": tests,
 			"runUrls[]": testUrls,
-			"browserSets[]": "popular-no-old-ie"
+			"browserSets[]": config.browserSets
 		});
 	});
 

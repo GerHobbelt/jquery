@@ -46,6 +46,10 @@ test( "jQuery.propFix integrity test", function() {
 		"contenteditable": "contentEditable"
 	};
 
+	if ( !jQuery.support.enctype ) {
+		props.enctype = "encoding";
+	}
+
 	deepEqual( props, jQuery.propFix, "jQuery.propFix passes integrity check" );
 });
 

@@ -458,11 +458,11 @@ var testAppend = function( valueObj ) {
 	equal( jQuery("#select1 optgroup").attr("label"), "optgroup", "Label attribute in newly inserted optgroup is correct" );
 	equal( jQuery("#select1 option:last").text(), "optgroup", "Appending optgroup" );
 
-	$table = jQuery("#table");
+	$table = jQuery("#table").empty();
 
 	jQuery.each( "thead tbody tfoot colgroup caption tr th td".split(" "), function( i, name ) {
 		$table.append( valueObj( "<" + name + "/>" ) );
-		equal( $table.find( name ).length, 1, "Append " + name );
+		ok( $table.find( name ).length >= 1, "Append " + name );
 		ok( jQuery.parseHTML( "<" + name + "/>" ).length, name + " wrapped correctly" );
 	});
 
@@ -625,6 +625,48 @@ test( "replaceWith([]) where replacing element requires cloning", function () {
 		"Make sure replaced elements were removed" );
 	equal( jQuery("#qunit-fixture").find(".replaced").length, 4,
 		"Make sure replacing elements were cloned" );
+});
+
+
+test( "append the same fragment with events (Bug #6997, 5566)", function() {
+
+	var element, clone,
+		doExtra = !jQuery.support.noCloneEvent && document["fireEvent"];
+
+	expect( 2 + ( doExtra ? 1 : 0 ) );
+
+	stop();
+
+	// This patch modified the way that cloning occurs in IE; we need to make sure that
+	// native event handlers on the original object don't get disturbed when they are
+	// modified on the clone
+	if ( doExtra ) {
+		element = jQuery("div:first").click(function() {
+			ok( true, "Event exists on original after being unbound on clone" );
+			jQuery( this ).unbind("click");
+		});
+		clone = element.clone( true ).unbind("click");
+		clone[ 0 ].fireEvent("onclick");
+		element[ 0 ].fireEvent("onclick");
+
+		// manually clean up detached elements
+		clone.remove();
+	}
+
+	element = jQuery("<a class='test6997'></a>").click(function() {
+		ok( true, "Append second element events work" );
+	});
+
+	jQuery("#listWithTabIndex li").append( element )
+		.find("a.test6997").eq( 1 ).click();
+
+	element = jQuery("<li class='test6997'></li>").click(function() {
+		ok( true, "Before second element events work" );
+		start();
+	});
+
+	jQuery("#listWithTabIndex li").before( element );
+	jQuery("#listWithTabIndex li.test6997").eq( 1 ).click();
 });
 
 test( "append HTML5 sectioning elements (Bug #6485)", function() {
@@ -1781,7 +1823,7 @@ test( "detach() event cleaning ", 1, function() {
 
 test("empty()", function() {
 
-	expect( 3 );
+	expect( 6 );
 
 	equal( jQuery("#ap").children().empty().text().length, 0, "Check text is removed" );
 	equal( jQuery("#ap").children().length, 4, "Check elements are not removed" );
@@ -1790,7 +1832,13 @@ test("empty()", function() {
 	var j = jQuery("#nonnodes").contents();
 	j.empty();
 	equal( j.html(), "", "Check node,textnode,comment empty works" );
-});
+
+	// Ensure oldIE empties selects (#12336)
+	notEqual( $("#select1").find("option").length, 0, "Have some initial options" );
+	$("#select1").empty();
+	equal( $("#select1").find("option").length, 0, "No more option elements found" );
+	equal( $("#select1")[0].options.length, 0, "options.length cleared as well" );
+	});
 
 test( "jQuery.cleanData", function() {
 
@@ -2050,21 +2098,17 @@ test( "Ensure oldIE creates a new set on appendTo (#8894)", function() {
 
 test( "html() - script exceptions bubble (#11743)", function() {
 
-	expect( 3 );
+	expect( 2 );
 
 	raises(function() {
-		jQuery("#qunit-fixture").html("<script>undefined(); ok( false, 'Exception not thrown' );</script>");
-		ok( false, "Exception ignored" );
-	}, "Exception bubbled from inline script" );
+		jQuery("#qunit-fixture").html("<script>undefined(); ok( false, 'error not thrown' );</script>");
+		ok( false, "error ignored" );
+	}, "exception bubbled from inline script" );
 
-	var onerror = window.onerror;
-	window.onerror = function() {
-		ok( true, "Exception thrown in remote script" );
-		window.onerror = onerror;
-	};
-
-	jQuery("#qunit-fixture").html("<script src='data/badcall.js'></script>");
-	ok( true, "Exception ignored" );
+	raises(function() {
+		jQuery("#qunit-fixture").html("<script src='data/badcall.js'></script>");
+		ok( false, "error ignored" );
+	}, "exception bubbled from remote script" );
 });
 
 test( "checked state is cloned with clone()", function() {

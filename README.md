@@ -57,11 +57,14 @@ Enter the jquery directory and install the Node dependencies, this time *without
 cd jquery && npm install
 ```
 
+
 Make sure you have `grunt` installed by testing:
 
 ```bash
 grunt -version
 ```
+
+
 
 Then, to get a complete, minified (w/ Uglify.js), linted (w/ JSHint) version of jQuery, type the following:
 
@@ -69,7 +72,8 @@ Then, to get a complete, minified (w/ Uglify.js), linted (w/ JSHint) version of 
 grunt
 ```
 
-The built version of jQuery will be put in the `dist/` subdirectory, along with the minified copy and associated map file.
+
+The built version of jQuery will be put in the `dist/` subdirectory.
 
 
 ### Modules (new in 1.8)
@@ -167,7 +171,7 @@ Run the unit tests with a local server that supports PHP. No database is require
 Building to a different directory
 ---------------------------------
 
-To copy the built jQuery files from `/dist` to another directory:
+If you want to build jQuery to a directory that is different from the default location:
 
 ```bash
 grunt && grunt dist:/path/to/special/location/
@@ -179,7 +183,7 @@ With this example, the output files would be:
 /path/to/special/location/jquery.min.js
 ```
 
-To add a permanent copy destination, create a file in `dist/` called ".destination.json". Inside the file, paste and customize the following:
+If you want to add a permanent copy destination, create a file in `dist/` called ".destination.json". Inside the file, paste and customize the following:
 
 ```json
 
@@ -187,6 +191,7 @@ To add a permanent copy destination, create a file in `dist/` called ".destinati
   "/Absolute/path/to/other/destination": true
 }
 ```
+
 
 Additionally, both methods can be combined.
 
@@ -205,8 +210,8 @@ Note: This task will also be run any time the default `grunt` command is used.
 
 
 
-Essential Git
--------------
+Git for dummies
+---------------
 
 As the source code is handled by the version control system Git, it's useful to know some features used.
 
