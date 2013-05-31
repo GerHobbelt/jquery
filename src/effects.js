@@ -42,8 +42,8 @@ var fxNow, timerId,
 
 			// Update tween properties
 			if ( parts ) {
+				start = tween.start = +start || +target || 0;
 				tween.unit = unit;
-				tween.start = +start || +target || 0;
 				// If a +=/-= token was provided, we're doing a relative animation
 				tween.end = parts[ 1 ] ?
 					start + ( parts[ 1 ] + 1 ) * parts[ 2 ] :
@@ -490,9 +490,7 @@ jQuery.fn.extend({
 			doAnimation = function() {
 				// Operate on a copy of prop so per-property easing won't be lost
 				var anim = Animation( this, jQuery.extend( {}, prop ), optall );
-				doAnimation.finish = function() {
-					anim.stop( true );
-				};
+
 				// Empty animations, or finishing resolves immediately
 				if ( empty || jQuery._data( this, "finish" ) ) {
 					anim.stop( true );
@@ -572,8 +570,8 @@ jQuery.fn.extend({
 			// empty the queue first
 			jQuery.queue( this, type, [] );
 
-			if ( hooks && hooks.cur && hooks.cur.finish ) {
-				hooks.cur.finish.call( this );
+			if ( hooks && hooks.stop ) {
+				hooks.stop.call( this, true );
 			}
 
 			// look for any active animations, and finish them
