@@ -244,6 +244,18 @@ test("jQuery(plain Object).data(String, Object).data(String)", function() {
 	deepEqual( $obj[0], { exists: true }, "removeData does not clear the object" );
 });
 
+test(".data(object) does not retain references. #13815", function() {
+	expect( 2 );
+
+	var $divs = jQuery("<div></div><div></div>").appendTo("#qunit-fixture");
+
+	$divs.data({ "type": "foo" });
+	$divs.eq( 0 ).data( "type", "bar" );
+
+	equal( $divs.eq( 0 ).data("type"), "bar", "Correct updated value" );
+	equal( $divs.eq( 1 ).data("type"), "foo", "Original value retained" );
+});
+
 test("data-* attributes", function() {
 	expect(40);
 	var prop, i, l, metadata, elem,
@@ -598,6 +610,35 @@ test(".data supports interoperable removal of hyphenated/camelCase properties", 
 
 		equal( div.data( key ), undefined, "get: " + key );
 
+	});
+});
+
+test(".data supports interoperable removal of properties SET TWICE #13850", function() {
+	var div = jQuery("<div>").appendTo("#qunit-fixture"),
+		datas = {
+			"non-empty": "a string",
+			"empty-string": "",
+			"one-value": 1,
+			"zero-value": 0,
+			"an-array": [],
+			"an-object": {},
+			"bool-true": true,
+			"bool-false": false,
+			// JSHint enforces double quotes,
+			// but JSON strings need double quotes to parse
+			// so we need escaped double quotes here
+			"some-json": "{ \"foo\": \"bar\" }"
+		};
+
+	expect( 9 );
+
+	jQuery.each( datas, function( key, val ) {
+		div.data( key, val );
+		div.data( key, val );
+
+		div.removeData( key );
+
+		equal( div.data( key ), undefined, "removal: " + key );
 	});
 });
 

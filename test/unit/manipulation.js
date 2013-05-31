@@ -879,7 +879,7 @@ test( "insertAfter(String|Element|Array<Element>|jQuery)", function() {
 function testReplaceWith( val ) {
 
 	var tmp, y, child, child2, set, non_existent, $div,
-		expected = 26;
+		expected = 29;
 
 	expect( expected );
 
@@ -953,6 +953,18 @@ function testReplaceWith( val ) {
 	equal( set[0].nodeName.toLowerCase(), "div", "No effect on a disconnected node." );
 	equal( set.length, 1, "No effect on a disconnected node." );
 	equal( set[0].childNodes.length, 0, "No effect on a disconnected node." );
+
+
+	child = jQuery("#qunit-fixture").children().first();
+	$div = jQuery("<div class='pathological'/>").insertBefore( child );
+	$div.replaceWith( $div );
+	deepEqual( jQuery( ".pathological", "#qunit-fixture" ).get(), $div.get(),
+		"Self-replacement" );
+	$div.replaceWith( child );
+	deepEqual( jQuery("#qunit-fixture").children().first().get(), child.get(),
+		"Replacement with following sibling (#13810)" );
+	deepEqual( jQuery( ".pathological", "#qunit-fixture" ).get(), [],
+		"Replacement with following sibling (context removed)" );
 
 
 	non_existent = jQuery("#does-not-exist").replaceWith( val("<b>should not throw an error</b>") );
@@ -2091,5 +2103,19 @@ test( "Make sure specific elements with content created correctly (#13232)", 20,
 
 	jQuery.fn.append.apply( jQuery("<div/>"), args ).children().each(function( i ) {
 		ok( jQuery.nodeName( this, results[ i ] ) );
+	});
+});
+
+test( "Validate creation of multiple quantities of certain elements (#13818)", 44, function() {
+	var tags = [ "thead", "tbody", "tfoot", "colgroup", "col", "caption", "tr", "th", "td", "optgroup", "option" ];
+
+	jQuery.each( tags, function( index, tag ) {
+		jQuery( "<" + tag + "/><" + tag + "/>" ).each(function() {
+			ok( jQuery.nodeName( this, tag ), tag + " empty elements created correctly" );
+		});
+
+		jQuery( "<" + this + "></" + tag + "><" + tag + "></" + tag + ">" ).each(function() {
+			ok( jQuery.nodeName( this, tag ), tag + " elements with closing tag created correctly" );
+		});
 	});
 });

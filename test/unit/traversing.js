@@ -141,16 +141,22 @@ test("is() with :has() selectors", function() {
 });
 
 test("is() with positional selectors", function() {
-	expect(24);
+	expect(27);
 
-	var isit = function(sel, match, expect) {
-		equal( jQuery( sel ).is( match ), expect, "jQuery('" + sel + "').is('" + match + "')" );
-	};
+	var
+		posp = jQuery(
+			"<p id='posp'><a class='firsta' href='#'><em>first</em></a>" +
+			"<a class='seconda' href='#'><b>test</b></a><em></em></p>"
+		).appendTo( "#qunit-fixture" ),
+		isit = function( sel, match, expect ) {
+			equal(
+				jQuery( sel ).is( match ),
+				expect,
+				"jQuery('" + sel + "').is('" + match + "')"
+			);
+		};
 
-	jQuery(
-		"<p id='posp'><a class='firsta' href='#'><em>first</em></a><a class='seconda' href='#'><b>test</b></a><em></em></p>"
-	).appendTo( "#qunit-fixture" );
-
+	isit( "#posp", "p:last", true );
 	isit( "#posp", "#posp:first", true );
 	isit( "#posp", "#posp:eq(2)", false );
 	isit( "#posp", "#posp a:first", false );
@@ -179,6 +185,9 @@ test("is() with positional selectors", function() {
 	isit( "#posp em", "#posp a em:eq(2)", false );
 
 	ok( jQuery("#option1b").is("#select1 option:not(:first)"), "POS inside of :not() (#10970)" );
+
+	ok( jQuery( posp[0] ).is("p:last"), "context constructed from a single node (#13797)" );
+	ok( !jQuery( posp[0] ).find("#firsta").is("a:first"), "context derived from a single node (#13797)" );
 });
 
 test("index()", function() {
@@ -662,6 +671,32 @@ test("contents()", function() {
 	c = jQuery("#nonnodes").contents().contents();
 	equal( c.length, 1, "Check node,textnode,comment contents is just one" );
 	equal( c[0].nodeValue, "hi", "Check node,textnode,comment contents is just the one from span" );
+});
+
+test("sort direction", function() {
+	expect( 12 );
+
+	var elems = jQuery("#ap, #select1 > *, #moretests > form"),
+		methodDirections = {
+			parent: false,
+			parents: true,
+			parentsUntil: true,
+			next: false,
+			prev: false,
+			nextAll: false,
+			prevAll: true,
+			nextUntil: false,
+			prevUntil: true,
+			siblings: false,
+			children: false,
+			contents: false
+		};
+
+	jQuery.each( methodDirections, function( method, reversed ) {
+		var actual = elems[ method ]().get(),
+			forward = jQuery.unique( [].concat( actual ) );
+		deepEqual( actual, reversed ? forward.reverse() : forward, "Correct sort direction for " + method );
+	});
 });
 
 test("add(String|Element|Array|undefined)", function() {
