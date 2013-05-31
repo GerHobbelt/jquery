@@ -31,16 +31,9 @@ test("class - jQuery only", function() {
 });
 
 test("attributes - jQuery only", function() {
-	expect( 6 );
+	expect( 5 );
 
 	t( "Find elements with a tabindex attribute", "[tabindex]", ["listWithTabIndex", "foodWithNegativeTabIndex", "linkWithTabIndex", "linkWithNegativeTabIndex", "linkWithNoHrefWithTabIndex", "linkWithNoHrefWithNegativeTabIndex"] );
-
-	// #12523
-	deepEqual(
-		jQuery.find( "[title]", null, null, jQuery("#qunit-fixture a").get().concat( document.createTextNode("") ) ),
-		q("google"),
-		"Text nodes fail attribute tests without exception"
-	);
 
 	// #12600
 	ok(
@@ -64,15 +57,20 @@ test("attributes - jQuery only", function() {
 });
 
 test("disconnected nodes", function() {
-	expect( 4 );
+	expect( 1 );
+
+	var $div = jQuery("<div/>");
+	equal( $div.is("div"), true, "Make sure .is('nodeName') works on disconnected nodes." );
+});
+
+test("disconnected nodes - jQuery only", function() {
+	expect( 3 );
+
 	var $opt = jQuery("<option></option>").attr("value", "whipit").appendTo("#qunit-fixture").detach();
 	equal( $opt.val(), "whipit", "option value" );
 	equal( $opt.is(":selected"), false, "unselected option" );
 	$opt.prop("selected", true);
 	equal( $opt.is(":selected"), true, "selected option" );
-
-	var $div = jQuery("<div/>");
-	equal( $div.is("div"), true, "Make sure .is('nodeName') works on disconnected nodes." );
 });
 
 test("jQuery only - broken", 1, function() {
@@ -83,7 +81,7 @@ test("jQuery only - broken", 1, function() {
 		// Sizzle.error will be called but no error will be seen in oldIE
 		jQuery.call( null, " <div/> " );
 	}, function( e ) {
-		return e.message.indexOf("Syntax error") >= 0;
+		return (/syntax.err/i).test( e.message );
 	}, "leading space invalid: $(' <div/> ')" );
 });
 
@@ -178,7 +176,8 @@ testIframe("selector/html5_selector", "attributes - jQuery.attr", function( jQue
 testIframe("selector/sizzle_cache", "Sizzle cache collides with multiple Sizzles on a page", function( jQuery, window, document ) {
 	var $cached = window["$cached"];
 
-	expect(3);
+	expect(4);
+	notStrictEqual( jQuery, $cached, "Loaded two engines" );
 	deepEqual( $cached(".test a").get(), [ document.getElementById("collision") ], "Select collision anchor with first sizzle" );
 	equal( jQuery(".evil a").length, 0, "Select nothing with second sizzle" );
 	equal( jQuery(".evil a").length, 0, "Select nothing again with second sizzle" );
