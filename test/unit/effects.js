@@ -1405,6 +1405,44 @@ test("Do not append px to 'fill-opacity' #9548", 1, function() {
 	});
 });
 
+test("line-height animates correctly (#13855)", function() {
+	expect( 12 );
+	stop();
+
+	var
+		animated = jQuery(
+			"<p style='line-height: 4;'>unitless</p>" +
+			"<p style='line-height: 50px;'>px</p>" +
+			"<p style='line-height: 420%;'>percent</p>" +
+			"<p style='line-height: 2.5em;'>em</p>"
+		).appendTo("#qunit-fixture"),
+		initialHeight = jQuery.map( animated, function( el ) {
+			return jQuery( el ).height();
+		});
+
+	animated.animate( { "line-height": "hide" }, 1500 );
+	setTimeout(function() {
+		animated.each(function( i ) {
+			var label = jQuery.text( this ),
+				initial = initialHeight[ i ],
+				height = jQuery( this ).height();
+			ok( height < initial, "hide " + label + ": upper bound" );
+			ok( height > initial / 2, "hide " + label + ": lower bound" );
+		});
+		animated.stop( true, true ).hide().animate( { "line-height": "show" }, 1500 );
+		setTimeout(function() {
+			animated.each(function( i ) {
+				var label = jQuery.text( this ),
+					initial = initialHeight[ i ],
+					height = jQuery( this ).height();
+				ok( height < initial / 2, "show " + label + ": upper bound" );
+			});
+			animated.stop( true, true );
+			start();
+		}, 400 );
+	}, 400 );
+});
+
 // Start 1.8 Animation tests
 asyncTest( "jQuery.Animation( object, props, opts )", 4, function() {
 	var animation,
@@ -2069,6 +2107,66 @@ test( ".finish() calls finish of custom queue functions", function() {
 	div.queue( queueTester ).queue( queueTester ).queue( queueTester ).finish();
 
 	div.remove();
+});
+
+asyncTest( "slideDown() after stop() (#13483)", 2, function() {
+	var ul = jQuery( "<ul style='height: 100px;display: block'></ul>" ),
+		origHeight = ul.height();
+
+	// First test. slideUp() -> stop() in the middle -> slideDown() until the end
+	ul.slideUp( 1000 );
+	setTimeout( function() {
+		ul.stop( true );
+		ul.slideDown( 1, function() {
+			equal( ul.height(), origHeight, "slideDown() after interrupting slideUp() with stop(). Height must be in original value" );
+
+			// Second test. slideDown() -> stop() in the middle -> slideDown() until the end
+			ul.slideUp( 1, function() {
+				ul.slideDown( 1000 );
+				setTimeout( function() {
+					ul.stop( true );
+					ul.slideDown( 1, function() {
+						equal( ul.height(), origHeight, "slideDown() after interrupting slideDown() with stop(). Height must be in original value" );
+
+						// Cleanup
+						ul.remove();
+						start();
+					});
+				}, 500 );
+			});
+
+		});
+	}, 500 );
+});
+
+asyncTest( "fadeIn() after stop() (related to #13483)", 2, function() {
+	var ul = jQuery( "<ul style='height: 100px;display: block; opacity: 1'></ul>" ),
+		origOpacity = ul.css( "opacity" );
+
+	// First test. fadeOut() -> stop() in the middle -> fadeIn() until the end
+	ul.fadeOut( 1000 );
+	setTimeout( function() {
+		ul.stop( true );
+		ul.fadeIn( 1, function() {
+			equal( ul.css( "opacity" ), origOpacity, "fadeIn() after interrupting fadeOut() with stop(). Opacity must be in original value" );
+
+			// Second test. fadeIn() -> stop() in the middle -> fadeIn() until the end
+			ul.fadeOut( 1, function() {
+				ul.fadeIn( 1000 );
+				setTimeout( function() {
+					ul.stop( true );
+					ul.fadeIn( 1, function() {
+						equal( ul.css("opacity"), origOpacity, "fadeIn() after interrupting fadeIn() with stop(). Opacity must be in original value" );
+
+						// Cleanup
+						ul.remove();
+						start();
+					});
+				}, 500 );
+			});
+
+		});
+	}, 500 );
 });
 
 })();

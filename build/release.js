@@ -9,7 +9,8 @@ var	debug = false,
 
 var fs = require("fs"),
 	child = require("child_process"),
-	path = require("path");
+	path = require("path"),
+	archiver = require("archiver");
 
 var releaseVersion,
 	nextVersion,
@@ -114,7 +115,7 @@ function checkGitStatus( next ) {
 	git( [ "status" ], function( error, stdout, stderr ) {
 		var onBranch = ((stdout||"").match( /On branch (\S+)/ ) || [])[1];
 		if ( onBranch !== branch ) {
-			die( "Branches don't match: Wanted " + branch + ", got " + onBranch );
+			dieIfReal( "Branches don't match: Wanted " + branch + ", got " + onBranch );
 		}
 		if ( /Changes to be committed/i.test( stdout ) ) {
 			dieIfReal( "Please commit changed files before attemping to push a release." );
@@ -140,17 +141,18 @@ function gruntBuild( next ) {
 		}
 		console.log( stdout );
 		next();
-	}, debug);
+	}, false );
 }
 
 function makeReleaseCopies( next ) {
 	Object.keys( releaseFiles ).forEach(function( key ) {
 		var text,
 			builtFile = releaseFiles[ key ],
-			releaseFile = key.replace( /VER/g, releaseVersion );
+			unpathedFile = key.replace( /VER/g, releaseVersion ),
+			releaseFile = "dist/" + unpathedFile;
 
 		// Beta releases don't update the jquery-latest etc. copies
-		if ( !isBeta || key !== releaseFile ) {
+		if ( !isBeta || key.indexOf( "VER" ) >= 0 ) {
 
 			if ( /\.map$/.test( releaseFile ) ) {
 				// Map files need to reference the new uncompressed name;
@@ -158,13 +160,18 @@ function makeReleaseCopies( next ) {
 				// "file":"jquery.min.js","sources":["jquery.js"]
 				text = fs.readFileSync( builtFile, "utf8" )
 					.replace( /"file":"([^"]+)","sources":\["([^"]+)"\]/,
-						"\"file\":\"" + releaseFile.replace( /\.min\.map/, ".min.js" ) +
-						"\",\"sources\":[\"" + releaseFile.replace( /\.min\.map/, ".js" ) + "\"]" );
-				console.log( "Modifying map " + builtFile + " to " + releaseFile );
-				if ( !debug ) {
-					fs.writeFileSync( releaseFile, text );
-				}
-			} else {
+						"\"file\":\"" + unpathedFile.replace( /\.min\.map/, ".min.js" ) +
+						"\",\"sources\":[\"" + unpathedFile.replace( /\.min\.map/, ".js" ) + "\"]" );
+				fs.writeFileSync( releaseFile, text );
+			} else if ( /\.min\.js$/.test( releaseFile ) ) {
+				// Minified files point back to the corresponding map;
+				// again assume one big happy directory.
+				// "//@ sourceMappingURL=jquery.min.map"
+				text = fs.readFileSync( builtFile, "utf8" )
+					.replace( /\/\/@ sourceMappingURL=\S+/,
+						"//@ sourceMappingURL=" + unpathedFile.replace( /\.js$/, ".map" ) );
+				fs.writeFileSync( releaseFile, text );
+			} else if ( builtFile !== releaseFile ) {
 				copy( builtFile, releaseFile );
 			}
 
@@ -228,27 +235,44 @@ function updatePackageVersion( ver ) {
 }
 
 function makeArchive( cdn, files, fn ) {
-
 	if ( isBeta ) {
 		console.log( "Skipping archive creation for " + cdn + "; " + releaseVersion + " is beta" );
 		process.nextTick( fn );
-		return
+		return;
 	}
-	console.log("Creating production archive for " + cdn );
+
+	console.log( "Creating production archive for " + cdn );
+
+	var archive = archiver( "zip" ),
+		md5file = "dist/" + cdn + "-md5.txt",
+		output = fs.createWriteStream( "dist/" + cdn + "-jquery-" + releaseVersion + ".zip" );
+
+	archive.on( "error", function( err ) {
+		throw err;
+	});
+
+	output.on( "close", fn );
+	archive.pipe( output );
+
 	files = files.map(function( item ) {
 		return "dist/" + item.replace( /VER/g, releaseVersion );
 	});
-	var md5file = "dist/" + cdn + "-md5.txt";
+
 	exec( "md5sum", files, function( err, stdout, stderr ) {
 		fs.writeFileSync( md5file, stdout );
 		files.push( md5file );
-		exec( "tar", [ "-czvf", "dist/" + cdn + "-jquery-" + releaseVersion + ".tar.gz" ].concat( files ), fn, false );
+
+		files.forEach(function( file ) {
+			archive.append( fs.createReadStream( file ), { name: file } );
+		});
+
+		archive.finalize();
 	}, false );
 }
 
-function copy( oldFile, newFile ) {
+function copy( oldFile, newFile, skip ) {
 	console.log( "Copying " + oldFile + " to " + newFile );
-	if ( !debug ) {
+	if ( !skip ) {
 		fs.writeFileSync( newFile, fs.readFileSync( oldFile, "utf8" ) );
 	}
 }
@@ -263,7 +287,7 @@ function exec( cmd, args, fn, skip ) {
 		fn( "", "", "" );
 	} else {
 		console.log( cmd + " " + args.join(" ") );
-		child.execFile( cmd, args, { env: process.env }, 
+		child.execFile( cmd, args, { env: process.env },
 			function( err, stdout, stderr ) {
 				if ( err ) {
 					die( stderr || stdout || err );
