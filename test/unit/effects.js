@@ -204,6 +204,46 @@ test("animate(Hash, Object, Function)", function() {
 	});
 });
 
+test("animate relative values", function() {
+	stop();
+
+	var value = 40,
+		bases = [ "%", "px", "em" ],
+		adjustments = [ "px", "em" ],
+		container = jQuery("<div></div>")
+			.css({ position: "absolute", height: "50em", width: "50em" }),
+		animations = bases.length * adjustments.length;
+
+	expect( 2 * animations );
+
+	jQuery.each( bases, function( _, baseUnit ) {
+		jQuery.each( adjustments, function( _, adjustUnit ) {
+			var base = value + baseUnit,
+				adjust = { height: "+=2" + adjustUnit, width: "-=2" + adjustUnit },
+				elem = jQuery("<div></div>")
+					.appendTo( container.clone().appendTo("#qunit-fixture") )
+					.css({
+						position: "absolute",
+						height: base,
+						width: value + adjustUnit
+					}),
+				baseScale = elem[ 0 ].offsetHeight / value,
+				adjustScale = elem[ 0 ].offsetWidth / value;
+
+			elem.css( "width", base ).animate( adjust, 100, function() {
+				equal( this.offsetHeight, value * baseScale + 2 * adjustScale,
+					baseUnit + "+=" + adjustUnit );
+				equal( this.offsetWidth, value * baseScale - 2 * adjustScale,
+					baseUnit + "-=" + adjustUnit );
+
+				if ( --animations === 0 ) {
+					start();
+				}
+			});
+		});
+	});
+});
+
 test("animate negative height", function() {
 	expect(1);
 	stop();
@@ -2056,19 +2096,45 @@ test( ".finish( \"custom\" ) - custom queue animations", function() {
 });
 
 test( ".finish() calls finish of custom queue functions", function() {
-	function queueTester() {
-
+	function queueTester( next, hooks ) {
+		hooks.stop = function( gotoEnd ) {
+			inside++;
+			equal( this, div[0] );
+			ok( gotoEnd, "hooks.stop(true) called");
+		};
 	}
-	var div = jQuery( "<div>" );
+	var div = jQuery( "<div>" ),
+		inside = 0,
+		outside = 0;
 
-	expect( 3 );
+	expect( 6 );
 	queueTester.finish = function() {
+		outside++;
 		ok( true, "Finish called on custom queue function" );
 	};
 
 	div.queue( queueTester ).queue( queueTester ).queue( queueTester ).finish();
 
+	equal( inside, 1, "1 stop(true) callback" );
+	equal( outside, 2, "2 finish callbacks" );
+
 	div.remove();
+});
+
+asyncTest( ".finish() is applied correctly when multiple elements were animated (#13937)", function() {
+	expect( 3 );
+
+	var elems = jQuery("<a>0</a><a>1</a><a>2</a>");
+
+	elems.animate( { opacity: 0 }, 1500 ).animate( { opacity: 1 }, 1500 );
+	setTimeout(function() {
+		elems.eq( 1 ).finish();
+		ok( !elems.eq( 1 ).queue().length, "empty queue for .finish()ed element" );
+		ok( elems.eq( 0 ).queue().length, "non-empty queue for preceding element" );
+		ok( elems.eq( 2 ).queue().length, "non-empty queue for following element" );
+		elems.stop( true );
+		start();
+	}, 100 );
 });
 
 asyncTest( "slideDown() after stop() (#13483)", 2, function() {
