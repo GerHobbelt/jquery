@@ -1,3 +1,11 @@
+define([
+	"./core",
+	"./var/strundefined",
+	"./core/swap",
+	// This is listed as a dependency for build order, but it's still optional in builds
+	"./core/ready"
+], function( jQuery, strundefined ) {
+
 jQuery.support = (function( support ) {
 
 	var all, a, input, select, fragment, opt, eventName, isSupported, i,
@@ -208,7 +216,7 @@ jQuery.support = (function( support ) {
 				!parseFloat( ( window.getComputedStyle( marginDiv, null ) || {} ).marginRight );
 		}
 
-		if ( typeof div.style.zoom !== core_strundefined ) {
+		if ( typeof div.style.zoom !== strundefined ) {
 			// Support: IE<8
 			// Check if natively block-level elements act like inline-block
 			// elements when setting their display to 'inline' and giving
@@ -244,3 +252,4 @@ jQuery.support = (function( support ) {
 	return support;
 })({});
 
+});

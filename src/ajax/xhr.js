@@ -1,3 +1,9 @@
+define([
+	"../core",
+	"../ajax",
+	"../support"
+], function( jQuery ) {
+
 var xhrCallbacks, xhrSupported,
 	xhrId = 0,
 	// #5280: Internet Explorer will keep connections alive if we don't abort on unload
@@ -205,3 +211,5 @@ if ( xhrSupported ) {
 		}
 	});
 }
+
+});
