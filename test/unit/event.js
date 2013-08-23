@@ -1794,7 +1794,6 @@ test( "delegated event with delegateTarget-relative selector", function() {
 		.end()
 		.find("a").trigger("click").end()
 		.find("#ul0").off();
-
 	markup.remove();
 });
 
@@ -2339,6 +2338,41 @@ test("checkbox state (#3827)", function() {
 
 	// Handlers only; checkbox state remains false
 	jQuery( cb ).triggerHandler( "click" );
+});
+
+test("trigger native-backed events with arguments", function() {
+	expect( 11 );
+
+	var data = [ "arg1", "arg2" ],
+		slice = data.slice,
+		$container = jQuery("#form"),
+		$checkbox = $container.find("#check1").blur();
+
+	// click (#13353)
+	strictEqual( $checkbox[0].checked, true, "Checked before .trigger(\"click\", data) (#13353)" );
+	$checkbox.on( "click", function( evt ) {
+		var type = evt.type;
+		strictEqual( this.checked, false, "State unchecked in " + type + " handler" );
+		deepEqual( slice.call(arguments, 1), data, "Correct data for " + type + " handler" );
+	});
+	$container.on( "click", function( evt ){
+		var type = evt.type;
+		strictEqual( evt.target.checked, false, "State unchecked in ancestor " + type + " handler" );
+		deepEqual( slice.call(arguments, 1), data, "Correct data for ancestor " + type + " handler" );
+	});
+	$checkbox.trigger( "click", data );
+	strictEqual( $checkbox[0].checked, false, "Unchecked after click (default action)" );
+
+	// focus (#13428); blur
+	notEqual( document.activeElement, $checkbox[0], "Not focused before .trigger(\"focus\", data) (#13428)" );
+	$checkbox.on( "focus blur", function( evt ) {
+		var type = evt.type;
+		deepEqual( slice.call(arguments, 1), data, "Correct data for " + type + " handler" );
+	});
+	$checkbox.trigger( "focus", data );
+	strictEqual( document.activeElement, $checkbox[0], "Focused after focus (default action)" );
+	$checkbox.trigger( "blur", data );
+	notEqual( document.activeElement, $checkbox[0], "Not focused after blur (default action)" );
 });
 
 test("focus-blur order (#12868)", function() {

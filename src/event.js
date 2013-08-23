@@ -554,26 +554,43 @@ jQuery.event = {
 			delegateType: "focusin"
 		},
 		blur: {
+			setup: function() {
+				// Claim the first click handler
+				return leverageNative( this, "blur" );
+			},
 			trigger: function() {
 				if ( this === safeActiveElement() && this.blur ) {
-					this.blur();
-					return false;
+					return leverageNative( this, "blur", returnTrue );//xxx jQuery.event.add( this, "blur", returnTrue );
 				}
 			},
 			delegateType: "focusout"
 		},
 		click: {
-			// For checkbox, fire native event so checked state will be right
+			// Utilize native event to ensure correct checkbox state
+			setup: function() {
+				// Claim the first click handler
+				if ( jQuery.nodeName( this, "input" ) && this.type === "checkbox" && this.click ) {
+					return leverageNative( this, "click" );
+				}
+
+				// Nothing to see here, move along
+				return false;
+			},
+	
 			trigger: function() {
+				// Force setup before triggering a click
 				if ( this.type === "checkbox" && this.click && jQuery.nodeName( this, "input" ) ) {
-					this.click();
-					return false;
+					// For checkbox, fire native event so checked state will be right
+					leverageNative( this, "click", returnTrue );//xxx jQuery.event.add( this, "click", returnTrue );
 				}
 			},
 
-			// For cross-browser consistency, don't fire native .click() on links
+			// Prevent default action if we're still in the Gordian knot
+			// Besides, for cross-browser consistency, don't fire native .click() on links
 			_default: function( event ) {
-				return jQuery.nodeName( event.target, "a" );
+				var target = event.target;
+				var rv = (target.type === "checkbox" && target.click && jQuery.nodeName( target, "input" ) && jQuery._data( target, "click" ));
+				return rv || jQuery.nodeName( event.target, "a" );
 			}
 		},
 
@@ -612,6 +629,63 @@ jQuery.event = {
 		}
 	}
 };
+
+function leverageNative( el, type, noopHandler ) {
+	// Abort if we've already completed setup
+	if ( jQuery._data( el, type ) !== undefined ) {
+		return;
+
+	// Force setup through jQuery.event.add
+	} else if ( noopHandler ) {
+		return jQuery.event.add( el, type, noopHandler );
+	}
+	
+	// Register the controller
+	jQuery.event.add( el, type, function( event ) {
+		var args = jQuery._data( this, type );
+
+		// If this is the outermost with-native-handlers event, fire a native one
+		if ( (event.isTrigger & 1) && !args ) {
+			// Remember provided arguments
+			if ( arguments.length > 1 ) {
+				jQuery._data( this, type, core_slice.call( arguments, 1 ) );
+			}
+
+			// Native!
+			try {
+				this[ type ]();
+
+			// Support: IE<9
+			// Handle error on focus to hidden element (#1486, #12518)
+			} catch ( e ) {
+				return;
+			}
+
+			// Fetch and forget the result
+			args = jQuery._data( this, type );
+			jQuery._data( this, type, false );
+
+			// Outermost synthetic does not pass Go
+			event.preventDefault();
+			event.stopImmediatePropagation();
+
+			return args;
+
+		// If this is a native event from above, everything is now in order
+		// Fire an inner synthetic event with the original arguments
+		} else if ( !event.isTrigger && args ) {
+			// Remember the result
+			jQuery._data( this, type,
+				jQuery.event.trigger( event, args, this ) );
+
+			// Intermediate native does not pass Go
+			event.stopImmediatePropagation();
+		}
+	});
+
+	// Note that the intercepting handler exists, but don't abort .add
+	return jQuery._data( el, type, false );
+}
 
 jQuery.removeEvent = function( elem, type, handle ) {
 	if ( elem.removeEventListener ) {
