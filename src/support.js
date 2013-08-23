@@ -1,3 +1,10 @@
+define([
+	"./core",
+	"./core/swap",
+	// This is listed as a dependency for build order, but it's still optional in builds
+	"./core/ready"
+], function( jQuery ) {
+
 jQuery.support = (function( support ) {
 	var input = document.createElement("input"),
 		fragment = document.createDocumentFragment(),
@@ -111,3 +118,4 @@ jQuery.support = (function( support ) {
 	return support;
 })( {} );
 
+});

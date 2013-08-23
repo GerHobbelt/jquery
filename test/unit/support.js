@@ -3,13 +3,18 @@ module("support", { teardown: moduleTeardown });
 if ( jQuery.css ) {
 	testIframeWithCallback( "body background is not lost if set prior to loading jQuery (#9239)", "support/bodyBackground.html", function( color, support ) {
 		expect( 2 );
-			var okValue = {
-				"#000000": true,
-				"rgb(0, 0, 0)": true
-			};
+		var okValue = {
+			"#000000": true,
+			"rgb(0, 0, 0)": true
+		};
 		ok( okValue[ color ], "color was not reset (" + color + ")" );
 
-		deepEqual( jQuery.extend( {}, support ), jQuery.support, "Same support properties" );
+		stop();
+		// Run doc ready tests as well
+		jQuery(function() {
+			deepEqual( jQuery.extend( {}, support ), jQuery.support, "Same support properties" );
+			start();
+		});
 	});
 }
 
@@ -33,6 +38,7 @@ testIframeWithCallback( "box-sizing does not affect jQuery.support.shrinkWrapBlo
 		userAgent = window.navigator.userAgent;
 
 	if ( /chrome/i.test( userAgent ) ) {
+		version = userAgent.match( /chrome\/(\d+)/i )[ 1 ];
 		expected = {
 			"checkOn":true,
 			"optSelected":true,
@@ -47,7 +53,7 @@ testIframeWithCallback( "box-sizing does not affect jQuery.support.shrinkWrapBlo
 			"clearCloneStyle": true,
 			"boxSizing": true,
 			"boxSizingReliable": true,
-			"pixelPosition": false
+			"pixelPosition": version >= 28
 		};
 	} else if ( /opera.*version\/12\.1/i.test( userAgent ) ) {
 		expected = {
