@@ -648,7 +648,7 @@ function leverageNative( el, type, noopHandler ) {
 		if ( (event.isTrigger & 1) && !args ) {
 			// Remember provided arguments
 			if ( arguments.length > 1 ) {
-				jQuery._data( this, type, core_slice.call( arguments, 1 ) );
+				jQuery._data( this, type, arguments.slice( 1 ) );
 			}
 
 			// Native!
