@@ -545,22 +545,27 @@ jQuery.event = {
 		},
 		focus: {
 			// Fire native event if possible so blur/focus sequence is correct
+			setup: function() {
+				// Claim the first focus handler
+				return leverageNative( this, "focus" );
+			},
 			trigger: function() {
 				if ( this !== safeActiveElement() && this.focus ) {
-					this.focus();
-					return false;
+					// jQuery.event.add() is taken care of by leverageNative so we need to return TRUE instead of FALSE here:
+					return leverageNative( this, "focus", returnTrue );
 				}
 			},
 			delegateType: "focusin"
 		},
 		blur: {
 			setup: function() {
-				// Claim the first click handler
+				// Claim the first blur handler
 				return leverageNative( this, "blur" );
 			},
 			trigger: function() {
 				if ( this === safeActiveElement() && this.blur ) {
-					return leverageNative( this, "blur", returnTrue );//xxx jQuery.event.add( this, "blur", returnTrue );
+					// jQuery.event.add() is taken care of by leverageNative so we need to return TRUE instead of FALSE here:
+					return leverageNative( this, "blur", returnTrue );
 				}
 			},
 			delegateType: "focusout"
@@ -569,19 +574,20 @@ jQuery.event = {
 			// Utilize native event to ensure correct checkbox state
 			setup: function() {
 				// Claim the first click handler
-				if ( jQuery.nodeName( this, "input" ) && this.type === "checkbox" && this.click ) {
+				if ( this.type === "checkbox" && this.click && jQuery.nodeName( this, "input" ) ) {
 					return leverageNative( this, "click" );
 				}
 
 				// Nothing to see here, move along
 				return false;
 			},
-	
+
 			trigger: function() {
 				// Force setup before triggering a click
 				if ( this.type === "checkbox" && this.click && jQuery.nodeName( this, "input" ) ) {
 					// For checkbox, fire native event so checked state will be right
-					leverageNative( this, "click", returnTrue );//xxx jQuery.event.add( this, "click", returnTrue );
+					// jQuery.event.add() is taken care of by leverageNative so we need to return TRUE instead of FALSE here:
+					leverageNative( this, "click", returnTrue );
 				}
 			},
 
@@ -639,7 +645,7 @@ function leverageNative( el, type, noopHandler ) {
 	} else if ( noopHandler ) {
 		return jQuery.event.add( el, type, noopHandler );
 	}
-	
+
 	// Register the controller
 	jQuery.event.add( el, type, function( event ) {
 		var args = jQuery._data( this, type );
