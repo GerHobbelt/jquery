@@ -8,21 +8,27 @@ module.exports = function( grunt ) {
 	"use strict";
 
 	var fs = require( "fs" ),
+		requirejs = require( "requirejs" ),
 		srcFolder = __dirname + "/../../src/",
 		rdefineEnd = /\}\);[^}\w]*$/,
-		// This is temporary until the skipSemiColonInsertion option makes it to NPM
-		requirejs = require( "../r" ),
 		config = {
 			baseUrl: "src",
 			name: "jquery",
 			out: "dist/jquery.js",
 			// We have multiple minify steps
 			optimize: "none",
+			// Include dependencies loaded with require
+			findNestedDependencies: true,
+			// Avoid breaking semicolons inserted by r.js
 			skipSemiColonInsertion: true,
 			wrap: {
 				startFile: "src/intro.js",
 				endFile: "src/outro.js"
 			},
+			paths: {
+				sizzle: "sizzle/dist/sizzle"
+			},
+			rawText: {},
 			onBuildWrite: convert
 		};
 
@@ -36,6 +42,7 @@ module.exports = function( grunt ) {
 	 * @param {String} contents The contents to be written (including their AMD wrappers)
 	 */
 	function convert( name, path, contents ) {
+		var amdName;
 		// Convert var modules
 		if ( /.\/var\//.test( path ) ) {
 			contents = contents
@@ -43,23 +50,38 @@ module.exports = function( grunt ) {
 				.replace( rdefineEnd, "" );
 
 		// Sizzle treatment
-		} else if ( /\/sizzle$/.test( name ) ) {
+		} else if ( /^sizzle$/.test( name ) ) {
 			contents = "var Sizzle =\n" + contents
 				// Remove EXPOSE lines from Sizzle
 				.replace( /\/\/\s*EXPOSE[\w\W]*\/\/\s*EXPOSE/, "return Sizzle;" );
 
+		// AMD Name
+		} else if ( (amdName = grunt.option( "amd" )) != null && /^exports\/amd$/.test( name ) ) {
+			// Remove the comma for anonymous defines
+			contents = contents
+				.replace( /(\s*)"jquery"(\,\s*)/, amdName ? "$1\"" + amdName + "\"$2" : "" );
+
 		} else {
 
-			// Ignore jQuery's return statement (the only necessary one)
+			// Ignore jQuery's exports (the only necessary one)
 			if ( name !== "jquery" ) {
 				contents = contents
-					.replace( /\s*return\s+[^\}]+(\}\);[^\w\}]*)$/, "$1" );
+					.replace( /\s*return\s+[^\}]+(\}\);[^\w\}]*)$/, "$1" )
+					// Multiple exports
+					.replace( /\s*exports\.\w+\s*=\s*\w+;/g, "" );
 			}
 
 			// Remove define wrappers, closure ends, and empty declarations
 			contents = contents
 				.replace( /define\([^{]*?{/, "" )
 				.replace( rdefineEnd, "" );
+
+			// Remove anything wrapped with
+			// /* ExcludeStart */ /* ExcludeEnd */
+			// or a single line directly after a // BuildExclude comment
+			contents = contents
+				.replace( /\/\*\s*ExcludeStart\s*\*\/[\w\W]*?\/\*\s*ExcludeEnd\s*\*\//ig, "" )
+				.replace( /\/\/\s*BuildExclude\n\r?[\w\W]*?\n\r?/ig, "" );
 
 			// Remove empty definitions
 			contents = contents
@@ -75,6 +97,7 @@ module.exports = function( grunt ) {
 		var flag, index,
 			done = this.async(),
 			flags = this.flags,
+			optIn = flags[ "*" ],
 			name = this.data.dest,
 			minimum = this.data.minimum,
 			removeWith = this.data.removeWith,
@@ -168,18 +191,22 @@ module.exports = function( grunt ) {
 		//  *:*:-css           all except css and dependents (explicit > implicit)
 		//  *:*:-css:+effects  same (excludes effects because explicit include is trumped by explicit exclude of dependency)
 		//  *:+effects         none except effects and its dependencies (explicit include trumps implicit exclude of dependency)
+		delete flags[ "*" ];
 		for ( flag in flags ) {
-			if ( flag !== "*" ) {
-				excluder( flag );
-			}
+			excluder( flag );
 		}
 
 		// Handle Sizzle exclusion
 		// Replace with selector-native
 		if ( (index = excluded.indexOf( "sizzle" )) > -1 ) {
-			config.rawText = {
-				selector: "define(['./selector-native']);"
-			};
+			config.rawText.selector = "define(['./selector-native']);";
+			excluded.splice( index, 1 );
+		}
+
+		// Replace exports/global with a noop noConflict
+		if ( (index = excluded.indexOf( "exports/global" )) > -1 ) {
+			config.rawText[ "exports/global" ] = "define(['../core']," +
+				"function( jQuery ) {\njQuery.noConflict = function() {};\n});";
 			excluded.splice( index, 1 );
 		}
 
@@ -213,6 +240,12 @@ module.exports = function( grunt ) {
 			grunt.file.write( name, compiled );
 		};
 
+		// Turn off opt-in if necessary
+		if ( !optIn ) {
+			// Overwrite the default inclusions with the explicit ones provided
+			config.rawText.jquery = "define([" + (included.length ? included.join(",") : "") + "]);";
+		}
+
 		// Trace dependencies and concatenate files
 		requirejs.optimize( config, function( response ) {
 			grunt.verbose.writeln( response );
@@ -232,11 +265,11 @@ module.exports = function( grunt ) {
 	//
 	//   grunt build:*:*:+ajax:-dimensions:-effects:-offset
 	grunt.registerTask( "custom", function() {
-		var args = [].slice.call( arguments ),
+		var args = this.args,
 			modules = args.length ? args[ 0 ].replace( /,/g, ":" ) : "";
 
 		grunt.log.writeln( "Creating custom build...\n" );
 
-		grunt.task.run([ "build:*:*:" + modules, "pre-uglify", "uglify", "dist" ]);
+		grunt.task.run([ "build:*:*" + (modules ? ":" + modules : ""), "uglify", "dist" ]);
 	});
 };

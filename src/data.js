@@ -1,9 +1,10 @@
 define([
 	"./core",
 	"./var/rnotwhite",
+	"./core/access",
 	"./data/var/data_priv",
 	"./data/var/data_user"
-], function( jQuery, rnotwhite, data_priv, data_user ) {
+], function( jQuery, rnotwhite, access, data_priv, data_user ) {
 
 /*
 	Implementation Summary
@@ -16,8 +17,37 @@ define([
 	5. Avoid exposing implementation details on user objects (eg. expando properties)
 	6. Provide a clear path for implementation upgrade to WeakMap in 2014
 */
-var rbrace = /(?:\{[\s\S]*\}|\[[\s\S]*\])$/,
+var rbrace = /^(?:\{[\w\W]*\}|\[[\w\W]*\])$/,
 	rmultiDash = /([A-Z])/g;
+
+function dataAttr( elem, key, data ) {
+	var name;
+
+	// If nothing was found internally, try to fetch any
+	// data from the HTML5 data-* attribute
+	if ( data === undefined && elem.nodeType === 1 ) {
+		name = "data-" + key.replace( rmultiDash, "-$1" ).toLowerCase();
+		data = elem.getAttribute( name );
+
+		if ( typeof data === "string" ) {
+			try {
+				data = data === "true" ? true :
+					data === "false" ? false :
+					data === "null" ? null :
+					// Only convert to a number if it doesn't change the string
+					+data + "" === data ? +data :
+					rbrace.test( data ) ? jQuery.parseJSON( data ) :
+					data;
+			} catch( e ) {}
+
+			// Make sure we set the data so it isn't changed later
+			data_user.set( elem, key, data );
+		} else {
+			data = undefined;
+		}
+	}
+	return data;
+}
 
 jQuery.extend({
 	hasData: function( elem ) {
@@ -45,10 +75,9 @@ jQuery.extend({
 
 jQuery.fn.extend({
 	data: function( key, value ) {
-		var attrs, name,
+		var i, name, data,
 			elem = this[ 0 ],
-			i = 0,
-			data = null;
+			attrs = elem && elem.attributes;
 
 		// Gets all values
 		if ( key === undefined ) {
@@ -56,8 +85,8 @@ jQuery.fn.extend({
 				data = data_user.get( elem );
 
 				if ( elem.nodeType === 1 && !data_priv.get( elem, "hasDataAttrs" ) ) {
-					attrs = elem.attributes;
-					for ( ; i < attrs.length; i++ ) {
+					i = attrs.length;
+					while ( i-- ) {
 						name = attrs[ i ].name;
 
 						if ( name.indexOf( "data-" ) === 0 ) {
@@ -79,7 +108,7 @@ jQuery.fn.extend({
 			});
 		}
 
-		return jQuery.access( this, function( value ) {
+		return access( this, function( value ) {
 			var data,
 				camelKey = jQuery.camelCase( key );
 
@@ -142,33 +171,5 @@ jQuery.fn.extend({
 	}
 });
 
-function dataAttr( elem, key, data ) {
-	var name;
-
-	// If nothing was found internally, try to fetch any
-	// data from the HTML5 data-* attribute
-	if ( data === undefined && elem.nodeType === 1 ) {
-		name = "data-" + key.replace( rmultiDash, "-$1" ).toLowerCase();
-		data = elem.getAttribute( name );
-
-		if ( typeof data === "string" ) {
-			try {
-				data = data === "true" ? true :
-					data === "false" ? false :
-					data === "null" ? null :
-					// Only convert to a number if it doesn't change the string
-					+data + "" === data ? +data :
-					rbrace.test( data ) ? JSON.parse( data ) :
-					data;
-			} catch( e ) {}
-
-			// Make sure we set the data so it isn't changed later
-			data_user.set( elem, key, data );
-		} else {
-			data = undefined;
-		}
-	}
-	return data;
-}
-
+return jQuery;
 });

@@ -1,7 +1,7 @@
 define([
 	"./core",
-	"../bower_components/sizzle/dist/sizzle"
-], function ( jQuery, Sizzle ) {
+	"sizzle"
+], function( jQuery, Sizzle ) {
 
 jQuery.find = Sizzle;
 jQuery.expr = Sizzle.selectors;

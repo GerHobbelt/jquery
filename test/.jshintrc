@@ -21,6 +21,8 @@
 	"wsh": true,
 
 	"globals": {
+		"require": false,
+		"define": false,
 		"DOMParser": false,
 		"QUnit": false,
 		"ok": false,
@@ -37,6 +39,7 @@
 		"ajaxTest": false,
 		"testIframe": false,
 		"testIframeWithCallback": false,
+		"iframeCallback": true,
 		"createDashboardXML": false,
 		"createXMLFragment": false,
 		"moduleTeardown": false,
@@ -46,6 +49,7 @@
 		"q": false,
 
 		"jQuery": true,
+		"sinon": true,
 		"module": true,
 		"test": true,
 		"amdDefined": true,
@@ -53,9 +57,11 @@
 		"Globals": true,
 		"hasPHP": true,
 		"isLocal": true,
+		"supportjQuery": true,
 		"originaljQuery": true,
 		"$": true,
 		"original$": true,
+		"baseURL": true,
 		"externalHost": true
 	}
 }

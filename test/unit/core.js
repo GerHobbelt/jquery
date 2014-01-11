@@ -351,8 +351,9 @@ asyncTest("isPlainObject", function() {
 	ok( pass, "Does not throw exceptions on host objects" );
 
 	// Objects from other windows should be matched
-	window.iframeCallback = function( otherObject, detail ) {
-		window.iframeCallback = undefined;
+	Globals.register("iframeDone");
+	window.iframeDone = function( otherObject, detail ) {
+		window.iframeDone = undefined;
 		iframe.parentNode.removeChild( iframe );
 		ok( jQuery.isPlainObject(new otherObject()), "new otherObject" + ( detail ? " - " + detail : "" ) );
 		start();
@@ -362,7 +363,7 @@ asyncTest("isPlainObject", function() {
 		iframe = jQuery("#qunit-fixture")[0].appendChild( document.createElement("iframe") );
 		doc = iframe.contentDocument || iframe.contentWindow.document;
 		doc.open();
-		doc.write("<body onload='window.parent.iframeCallback(Object);'>");
+		doc.write("<body onload='window.parent.iframeDone(Object);'>");
 		doc.close();
 	} catch(e) {
 		window.iframeDone( Object, "iframes not supported" );
@@ -382,7 +383,6 @@ test("isFunction", function() {
 	ok( !jQuery.isFunction( 0 ), "0 Value" );
 
 	// Check built-ins
-	// Safari uses "(Internal Function)"
 	ok( jQuery.isFunction(String), "String Function("+String+")" );
 	ok( jQuery.isFunction(Array), "Array Function("+Array+")" );
 	ok( jQuery.isFunction(Object), "Object Function("+Object+")" );
@@ -409,7 +409,6 @@ test("isFunction", function() {
 	// Firefox says this is a function
 	ok( !jQuery.isFunction(obj), "Object Element" );
 
-	// IE says this is an object
 	// Since 1.3, this isn't supported (#2968)
 	//ok( jQuery.isFunction(obj.getAttribute), "getAttribute Function" );
 
@@ -427,7 +426,6 @@ test("isFunction", function() {
 	input.type = "text";
 	document.body.appendChild( input );
 
-	// IE says this is an object
 	// Since 1.3, this isn't supported (#2968)
 	//ok( jQuery.isFunction(input.focus), "A default function property" );
 
@@ -585,11 +583,10 @@ test("isWindow", function() {
 });
 
 test("jQuery('html')", function() {
-	expect( 15 );
+	expect( 18 );
 
 	var s, div, j;
 
-	QUnit.reset();
 	jQuery["foo"] = false;
 	s = jQuery("<script>jQuery.foo='test';</script>")[0];
 	ok( s, "Creating a script" );
@@ -605,7 +602,6 @@ test("jQuery('html')", function() {
 	equal( div.childNodes[1].nodeType, 1, "Paragraph." );
 	equal( div.childNodes[1].firstChild.nodeType, 3, "Paragraph text." );
 
-	QUnit.reset();
 	ok( jQuery("<link rel='stylesheet'/>")[0], "Creating a link" );
 
 	ok( !jQuery("<script/>")[0].parentNode, "Create a script" );
@@ -620,10 +616,13 @@ test("jQuery('html')", function() {
 	ok( jQuery("<div></div>")[0], "Create a div with closing tag." );
 	ok( jQuery("<table></table>")[0], "Create a table with closing tag." );
 
-	// equal( jQuery("element[attribute='<div></div>']").length, 0, "When html is within brackets, do not recognize as html." );
-	// equal( jQuery("element[attribute=<div></div>]").length, 0, "When html is within brackets, do not recognize as html." );
-	// equal( jQuery("element:not(<div></div>)").length, 0, "When html is within parens, do not recognize as html." );
-	// equal( jQuery("\\<div\\>").length, 0, "Ignore escaped html characters" );
+	equal( jQuery( "element[attribute='<div></div>']" ).length, 0,
+		"When html is within brackets, do not recognize as html." );
+	//equal( jQuery( "element[attribute=<div></div>]" ).length, 0,
+	//	"When html is within brackets, do not recognize as html." );
+	equal( jQuery( "element:not(<div></div>)" ).length, 0,
+		"When html is within parens, do not recognize as html." );
+	equal( jQuery( "\\<div\\>" ).length, 0, "Ignore escaped html characters" );
 });
 
 test("jQuery('massive html #7990')", function() {
@@ -903,25 +902,85 @@ test("jQuery.map", function() {
 });
 
 test("jQuery.merge()", function() {
-	expect(8);
+	expect( 10 );
 
-	deepEqual( jQuery.merge([],[]), [], "Empty arrays" );
+	deepEqual(
+		jQuery.merge( [], [] ),
+		[],
+		"Empty arrays"
+	);
 
-	deepEqual( jQuery.merge([ 1 ],[ 2 ]), [ 1, 2 ], "Basic" );
-	deepEqual( jQuery.merge([ 1, 2 ], [ 3, 4 ]), [ 1, 2, 3, 4 ], "Basic" );
+	deepEqual(
+		jQuery.merge( [ 1 ], [ 2 ] ),
+		[ 1, 2 ],
+		"Basic (single-element)"
+	);
+	deepEqual(
+		jQuery.merge( [ 1, 2 ], [ 3, 4 ] ),
+		[ 1, 2, 3, 4 ],
+		"Basic (multiple-element)"
+	);
 
-	deepEqual( jQuery.merge([ 1, 2 ],[]), [ 1, 2 ], "Second empty" );
-	deepEqual( jQuery.merge([],[ 1, 2 ]), [ 1, 2 ], "First empty" );
+	deepEqual(
+		jQuery.merge( [ 1, 2 ], [] ),
+		[ 1, 2 ],
+		"Second empty"
+	);
+	deepEqual(
+		jQuery.merge( [], [ 1, 2 ] ),
+		[ 1, 2 ],
+		"First empty"
+	);
 
 	// Fixed at [5998], #3641
-	deepEqual( jQuery.merge([ -2, -1 ], [ 0, 1, 2 ]), [ -2, -1 , 0, 1, 2 ],
-		"Second array including a zero (falsy)");
+	deepEqual(
+		jQuery.merge( [ -2, -1 ], [ 0, 1, 2 ] ),
+		[ -2, -1 , 0, 1, 2 ],
+		"Second array including a zero (falsy)"
+	);
 
 	// After fixing #5527
-	deepEqual( jQuery.merge([], [ null, undefined ]), [ null, undefined ],
-		"Second array including null and undefined values");
-	deepEqual( jQuery.merge({ length: 0 }, [ 1, 2 ] ), { length: 2, 0: 1, 1: 2},
-		"First array like");
+	deepEqual(
+		jQuery.merge( [], [ null, undefined ] ),
+		[ null, undefined ],
+		"Second array including null and undefined values"
+	);
+	deepEqual(
+		jQuery.merge( { length: 0 }, [ 1, 2 ] ),
+		{ length: 2, 0: 1, 1: 2 },
+		"First array like"
+	);
+	deepEqual(
+		jQuery.merge( [ 1, 2 ], { length: 1, 0: 3 } ),
+		[ 1, 2, 3 ],
+		"Second array like"
+	);
+
+	deepEqual(
+		jQuery.merge( [], document.getElementById("lengthtest").getElementsByTagName("input") ),
+		[ document.getElementById("length"), document.getElementById("idTest") ],
+		"Second NodeList"
+	);
+});
+
+test("jQuery.grep()", function() {
+	expect(8);
+
+	var searchCriterion = function( value ) {
+		return value % 2 === 0;
+	};
+
+	deepEqual( jQuery.grep( [], searchCriterion ), [], "Empty array" );
+	deepEqual( jQuery.grep( new Array(4), searchCriterion ), [], "Sparse array" );
+
+	deepEqual( jQuery.grep( [ 1, 2, 3, 4, 5, 6 ], searchCriterion ), [ 2, 4, 6 ], "Satisfying elements present" );
+	deepEqual( jQuery.grep( [ 1, 3, 5, 7], searchCriterion ), [], "Satisfying elements absent" );
+
+	deepEqual( jQuery.grep( [ 1, 2, 3, 4, 5, 6 ], searchCriterion, true ), [ 1, 3, 5 ], "Satisfying elements present and grep inverted" );
+	deepEqual( jQuery.grep( [ 1, 3, 5, 7], searchCriterion, true ), [1, 3, 5, 7], "Satisfying elements absent and grep inverted" );
+
+	deepEqual( jQuery.grep( [ 1, 2, 3, 4, 5, 6 ], searchCriterion, false ), [ 2, 4, 6 ], "Satisfying elements present but grep explicitly uninverted" );
+	deepEqual( jQuery.grep( [ 1, 3, 5, 7 ], searchCriterion, false ), [], "Satisfying elements absent and grep explicitly uninverted" );
 });
 
 test("jQuery.extend(Object, Object)", function() {
@@ -1299,13 +1358,35 @@ test("jQuery.parseHTML", function() {
 	ok( jQuery.parseHTML("<#if><tr><p>This is a test.</p></tr><#/if>") || true, "Garbage input should not cause error" );
 });
 
-test("jQuery.parseJSON", function(){
-	expect( 9 );
+test("jQuery.parseJSON", function() {
+	expect( 20 );
 
-	equal( jQuery.parseJSON( null ), null, "Actual null returns null" );
-	equal( jQuery.isEmptyObject( jQuery.parseJSON("{}") ), true, "Empty object returns empty object" );
-	deepEqual( jQuery.parseJSON("{\"test\":1}"), { "test": 1 }, "Plain object parses" );
-	deepEqual( jQuery.parseJSON("\n{\"test\":1}"), { "test": 1 }, "Leading whitespaces are ignored." );
+	strictEqual( jQuery.parseJSON( null ), null, "primitive null" );
+	strictEqual( jQuery.parseJSON("0.88"), 0.88, "Number" );
+	strictEqual(
+		jQuery.parseJSON("\" \\\" \\\\ \\/ \\b \\f \\n \\r \\t \\u007E \\u263a \""),
+		" \" \\ / \b \f \n \r \t ~ \u263A ",
+		"String escapes"
+	);
+	deepEqual( jQuery.parseJSON("{}"), {}, "Empty object" );
+	deepEqual( jQuery.parseJSON("{\"test\":1}"), { "test": 1 }, "Plain object" );
+	deepEqual( jQuery.parseJSON("[0]"), [ 0 ], "Simple array" );
+
+	deepEqual(
+		jQuery.parseJSON("[ \"string\", -4.2, 2.7180e0, 3.14E-1, {}, [], true, false, null ]"),
+		[ "string", -4.2, 2.718, 0.314, {}, [], true, false, null ],
+		"Array of all data types"
+	);
+	deepEqual(
+		jQuery.parseJSON( "{ \"string\": \"\", \"number\": 4.2e+1, \"object\": {}," +
+			"\"array\": [[]], \"boolean\": [ true, false ], \"null\": null }"),
+		{ string: "", number: 42, object: {}, array: [[]], boolean: [ true, false ], "null": null },
+		"Dictionary of all data types"
+	);
+
+	deepEqual( jQuery.parseJSON("\n{\"test\":1}\t"), { "test": 1 },
+		"Leading and trailing whitespace are ignored" );
+
 	raises(function() {
 		jQuery.parseJSON();
 	}, null, "Undefined raises an error" );
@@ -1315,12 +1396,53 @@ test("jQuery.parseJSON", function(){
 	raises(function() {
 		jQuery.parseJSON("''");
 	}, null, "Single-quoted string raises an error" );
+	/*
+
+	// Broken on IE8
+	raises(function() {
+		jQuery.parseJSON("\" \\a \"");
+	}, null, "Invalid string escape raises an error" );
+
+	// Broken on IE8, Safari 5.1 Windows
+	raises(function() {
+		jQuery.parseJSON("\"\t\"");
+	}, null, "Unescaped control character raises an error" );
+
+	// Broken on IE8
+	raises(function() {
+		jQuery.parseJSON(".123");
+	}, null, "Number with no integer component raises an error" );
+
+	*/
+	raises(function() {
+		var result = jQuery.parseJSON("0101");
+
+		// Support: IE9+
+		// Ensure base-10 interpretation on browsers that erroneously accept leading-zero numbers
+		if ( result === 101 ) {
+			throw new Error("close enough");
+		}
+	}, null, "Leading-zero number raises an error or is parsed as decimal" );
 	raises(function() {
 		jQuery.parseJSON("{a:1}");
 	}, null, "Unquoted property raises an error" );
 	raises(function() {
 		jQuery.parseJSON("{'a':1}");
 	}, null, "Single-quoted property raises an error" );
+	raises(function() {
+		jQuery.parseJSON("[,]");
+	}, null, "Array element elision raises an error" );
+	raises(function() {
+		jQuery.parseJSON("{},[]");
+	}, null, "Comma expression raises an error" );
+	raises(function() {
+		jQuery.parseJSON("[]\n,{}");
+	}, null, "Newline-containing comma expression raises an error" );
+	raises(function() {
+		jQuery.parseJSON("\"\"\n\"\"");
+	}, null, "Automatic semicolon insertion raises an error" );
+
+	strictEqual( jQuery.parseJSON([ 0 ]), 0, "Input cast to string" );
 });
 
 test("jQuery.parseXML", 8, function(){
@@ -1385,3 +1507,10 @@ testIframeWithCallback( "document ready when jQuery loaded asynchronously (#1365
 	expect( 1 );
 	equal( true, ready, "document ready correctly fired when jQuery is loaded after DOMContentLoaded" );
 });
+
+testIframeWithCallback( "Tolerating alias-masked DOM properties (#14074)", "core/aliased.html",
+	function( errors ) {
+			expect( 1 );
+			deepEqual( errors, [], "jQuery loaded" );
+	}
+);

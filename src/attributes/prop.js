@@ -1,13 +1,14 @@
 define([
 	"../core",
-	"../support"
-], function( jQuery ) {
+	"../core/access",
+	"./support"
+], function( jQuery, access, support ) {
 
 var rfocusable = /^(?:input|select|textarea|button)$/i;
 
 jQuery.fn.extend({
 	prop: function( name, value ) {
-		return jQuery.access( this, jQuery.prop, name, value, arguments.length > 1 );
+		return access( this, jQuery.prop, name, value, arguments.length > 1 );
 	},
 
 	removeProp: function( name ) {
@@ -65,7 +66,7 @@ jQuery.extend({
 
 // Support: IE9+
 // Selectedness for an option in an optgroup can be inaccurate
-if ( !jQuery.support.optSelected ) {
+if ( !support.optSelected ) {
 	jQuery.propHooks.selected = {
 		get: function( elem ) {
 			var parent = elem.parentNode;

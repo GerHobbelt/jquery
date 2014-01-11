@@ -4,57 +4,42 @@
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 	<meta http-equiv="X-UA-Compatible" content="IE=Edge" />
 	<title>jQuery Test Suite</title>
-	<link rel="Stylesheet" media="screen" href="../bower_components/qunit/qunit/qunit.css" />
+	<link rel="Stylesheet" media="screen" href="libs/qunit/qunit.css" />
 	<link rel="Stylesheet" media="screen" href="data/testsuite.css" />
 	<!-- Includes -->
 
-	<!-- Allows us to fetch submodule tests when using a no-ajax build -->
-	<script src="data/jquery-1.9.1.ajax_xhr.min.js"></script>
+	<!--
+		We have to use previous jQuery as helper to ensure testability with
+		ajax-free builds (and non-interference when changing ajax internals)
+	-->
+	<script src="data/jquery-1.9.1.js"></script>
 
+	<script src="libs/qunit/qunit.js"></script>
+	<script src="libs/require.js"></script>
+	<script src="libs/sinon/fake_timers.js"></script>
+	<!-- See testinit for the list of tests -->
 	<script src="data/testinit.js"></script>
 
-	<script src="../bower_components/qunit/qunit/qunit.js"></script>
-	<script src="../bower_components/requirejs/require.js"></script>
-	<script>loadTests = [
-		"data/testrunner.js",
-		"unit/core.js",
-		"unit/callbacks.js",
-		"unit/deferred.js",
-		"unit/support.js",
-		"unit/data.js",
-		"unit/queue.js",
-		"unit/attributes.js",
-		"unit/event.js",
-		"unit/selector.js",
-		"unit/traversing.js",
-		"unit/manipulation.js",
-		"unit/wrap.js",
-		"unit/css.js",
-		"unit/serialize.js",
-		"unit/ajax.js",
-		"unit/effects.js",
-		"unit/offset.js",
-		"unit/dimensions.js"
-	];</script>
 	<!-- A script that includes jQuery min, dev, or AMD -->
 	<!-- Adds "basic" URL option, even to iframes -->
 	<!-- iframes will not load AMD as loading needs to be synchronous for some tests -->
-	<!-- Also loads the tests above synchronously with min or dev and async with AMD -->
+	<!-- Also executes the function above to load tests -->
 	<script src="jquery.js"></script>
 
 	<script>
-
-		// Add Sizzle tests if they not loaded by requirejs
-		if ( window.testSubproject ) {
-			testSubproject( "Sizzle", "../bower_components/sizzle/test/", /^unit\/.*\.js$/ );
-		}
-
 		// html5shiv, enabling HTML5 elements to be used with jQuery
 		( "abbr article aside audio bdi canvas data datalist details figcaption figure footer header hgroup " +
 			"mark meter nav output progress section summary time video"
 		).replace(/\w+/g, function(n) {
 			document.createElement(n);
 		});
+
+		// Load tests if they have not been loaded
+		// This is in a different script tag to ensure that
+		// jQuery is on the page when the testrunner executes
+		if ( !QUnit.urlParams.amd ) {
+			loadTests();
+		}
 	</script>
 </head>
 

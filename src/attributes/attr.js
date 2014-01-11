@@ -2,15 +2,17 @@ define([
 	"../core",
 	"../var/rnotwhite",
 	"../var/strundefined",
-	"../selector",
-	"../support"
-], function( jQuery, rnotwhite, strundefined ) {
+	"../core/access",
+	"./support",
+	"../selector"
+], function( jQuery, rnotwhite, strundefined, access, support ) {
 
-var nodeHook, boolHook;
+var nodeHook, boolHook,
+	attrHandle = jQuery.expr.attrHandle;
 
 jQuery.fn.extend({
 	attr: function( name, value ) {
-		return jQuery.access( this, jQuery.attr, name, value, arguments.length > 1 );
+		return access( this, jQuery.attr, name, value, arguments.length > 1 );
 	},
 
 	removeAttr: function( name ) {
@@ -92,7 +94,8 @@ jQuery.extend({
 	attrHooks: {
 		type: {
 			set: function( elem, value ) {
-				if ( !jQuery.support.radioValue && value === "radio" && jQuery.nodeName(elem, "input") ) {
+				if ( !support.radioValue && value === "radio" &&
+					jQuery.nodeName( elem, "input" ) ) {
 					// Setting the type on a radio button after the value resets the value in IE6-9
 					// Reset value to default in case type is set after value during creation
 					var val = elem.value;
@@ -120,23 +123,19 @@ boolHook = {
 	}
 };
 jQuery.each( jQuery.expr.match.bool.source.match( /\w+/g ), function( i, name ) {
-	var getter = jQuery.expr.attrHandle[ name ] || jQuery.find.attr;
+	var getter = attrHandle[ name ] || jQuery.find.attr;
 
-	jQuery.expr.attrHandle[ name ] = function( elem, name, isXML ) {
-		var fn = jQuery.expr.attrHandle[ name ],
-			ret = isXML ?
-				undefined :
-				/* jshint eqeqeq: false */
-				// Temporarily disable this handler to check existence
-				(jQuery.expr.attrHandle[ name ] = undefined) !=
-					getter( elem, name, isXML ) ?
-
-					name.toLowerCase() :
-					null;
-
-		// Restore handler
-		jQuery.expr.attrHandle[ name ] = fn;
-
+	attrHandle[ name ] = function( elem, name, isXML ) {
+		var ret, handle;
+		if ( !isXML ) {
+			// Avoid an infinite loop by temporarily removing this function from the getter
+			handle = attrHandle[ name ];
+			attrHandle[ name ] = ret;
+			ret = getter( elem, name, isXML ) != null ?
+				name.toLowerCase() :
+				null;
+			attrHandle[ name ] = handle;
+		}
 		return ret;
 	};
 });

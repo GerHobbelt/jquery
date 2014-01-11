@@ -6,9 +6,16 @@ Contribution Guides
 
 In the spirit of open source software development, jQuery always encourages community code contribution. To help you get started and before you jump into writing code, be sure to read these important contribution guidelines thoroughly:
 
-1. [Getting Involved](http://docs.jquery.com/Getting_Involved)
-2. [Core Style Guide](http://docs.jquery.com/JQuery_Core_Style_Guidelines)
-3. [Tips For Bug Patching](http://docs.jquery.com/Tips_for_jQuery_Bug_Patching)
+1. [Getting Involved](http://contribute.jquery.org/)
+2. [Core Style Guide](http://contribute.jquery.org/style-guide/js/)
+3. [Writing Code for jQuery Foundation Projects](http://contribute.jquery.org/code/)
+
+
+Environments in which to use jQuery
+--------------------------------------
+
+- [Browser support](http://jquery.com/browser-support/) differs between the master (2.x) branch and the 1.x-master branch. Specifically, 2.x does not support legacy browsers such as IE6-8. The jQuery team continues to provide support for legacy browsers on the 1.x-master branch. Use the latest 1.x release if support for those browsers is required. See [browser support](http://jquery.com/browser-support/) for more info.
+- To use jQuery in Node, browser extensions, and other non-browser environments, use only **2.x** releases. 1.x does not support these environments.
 
 
 What you need to build your own jQuery
@@ -29,39 +36,37 @@ if you swing that way. Easy-peasy.
 How to build your own jQuery
 ----------------------------
 
-First, clone a copy of the main jQuery git repo by running:
+Clone a copy of the main jQuery git repo by running:
 
 ```bash
 git clone git://github.com/jquery/jquery.git
 ```
 
-Install the [grunt-cli](http://gruntjs.com/getting-started#installing-the-cli) and [bower](http://bower.io/) packages if you haven't before. These should be done as global installs:
-
+Enter the jquery directory and run the build script:
 ```bash
-npm install -g grunt-cli bower
+cd jquery && npm run build
+```
+The built version of jQuery will be put in the `dist/` subdirectory, along with the minified copy and associated map file.
+
+If you want create custom build or help with jQuery development, it would be better to install [grunt command line interface](https://github.com/gruntjs/grunt-cli) as a global package:
+
+```
+npm install -g grunt-cli
+```
+Make sure you have `grunt` installed by testing:
+```
+grunt -v
 ```
 
-Make sure you have `grunt` and `bower` installed by testing:
-
-```bash
-grunt -version
-bower -version
+Now by running `grunt` command, in the jquery directory, you could build full version of jQuery, just like with `npm run build` command:
 ```
-
-Enter the jquery directory and install the Node and Bower dependencies, this time *without* specifying a global(-g) install:
-
-```bash
-cd jquery && npm install
-```
-
-Then, to get a complete, minified (w/ Uglify.js), linted (w/ JSHint) version of jQuery, type the following:
-
-```bash
 grunt
 ```
 
-The built version of jQuery will be put in the `dist/` subdirectory, along with the minified copy and associated map file.
-
+There are many other tasks available for jQuery Core:
+```
+grunt -help
+```
 
 ### Modules
 
@@ -85,18 +90,34 @@ Some example modules that can be excluded are:
 - **event/alias**: All event attaching/triggering shorthands like `.click()` or `.mouseover()`.
 - **offset**: The `.offset()`, `.position()`, `.offsetParent()`, `.scrollLeft()`, and `.scrollTop()` methods.
 - **wrap**: The `.wrap()`, `.wrapAll()`, `.wrapInner()`, and `.unwrap()` methods.
-- **exports/amd**: Exclude the AMD definition.
 - **core/ready**: Exclude the ready module if you place your scripts at the end of the body. Any ready callbacks bound with `jQuery()` will simply be called immediately. However, `jQuery(document).ready()` will not be a function and `.on("ready", ...)` or similar will not be triggered.
 - **deferred**: Exclude jQuery.Deferred. This also removes jQuery.Callbacks. *Note* that modules that depend on jQuery.Deferred(AJAX, effects, core/ready) will not be removed and will still expect jQuery.Deferred to be there. Include your own jQuery.Deferred implementation or exclude those modules as well (`grunt custom:-deferred,-ajax,-effects,-core/ready`).
-- **support**: Excluding the support module is not recommended, but possible. It's your responsibility to either remove modules that use jQuery.support (many of them) or replace the values wherever jQuery.support is used. This is mainly only useful when building a barebones version of jQuery.
+- **exports/global**: Exclude the attachment of global jQuery variables ($ and jQuery) to the window.
+- **exports/amd**: Exclude the AMD definition.
 
 As a special case, you may also replace Sizzle by using a special flag `grunt custom:-sizzle`.
 
 - **sizzle**: The Sizzle selector engine. When this module is excluded, it is replaced by a rudimentary selector engine based on the browser's `querySelectorAll` method that does not support jQuery selector extensions or enhanced semantics. See the selector-native.js file for details.
 
-*Note*: Excluding Sizzle will also exclude all jQuery selector extensions (such as `effects/animated-selector` and `css/hidden-visible-selectors`).
+*Note*: Excluding Sizzle will also exclude all jQuery selector extensions (such as `effects/animatedSelector` and `css/hiddenVisibleSelectors`).
 
 The build process shows a message for each dependent module it excludes or includes.
+
+##### AMD name
+
+As an option, you can set the module name for jQuery's AMD definition. By default, it is set to "jquery", which plays nicely with plugins and third-party libraries, but there may be cases where you'd like to change this. Simply set the `"amd"` option:
+
+```bash
+grunt custom --amd="custom-name"
+```
+
+Or, to define anonymously, set the name to an empty string.
+
+```bash
+grunt custom --amd=""
+```
+
+#### Custom Build Examples
 
 To create a custom build of the latest stable version, first check out the version:
 
@@ -110,7 +131,7 @@ Then, make sure all Node dependencies are installed:
 npm install
 ```
 
-Create the custom build, use the `grunt custom` option, listing the modules to be excluded. Examples:
+Create the custom build using the `grunt custom` option, listing the modules to be excluded.
 
 Exclude all **ajax** functionality:
 
@@ -138,10 +159,10 @@ Running the Unit Tests
 Make sure you have the necessary dependencies:
 
 ```bash
-bower install
+npm install
 ```
 
-Start `grunt watch` to auto-build jQuery as you work:
+Start `grunt watch` or `npm start` to auto-build jQuery as you work:
 
 ```bash
 cd jquery && grunt watch
@@ -202,7 +223,7 @@ git clean -fdx
 
 ### rebasing ###
 
-For feature/topic branches, you should always used the `--rebase` flag to `git pull`, or if you are usually handling many temporary "to be in a github pull request" branches, run following to automate this:
+For feature/topic branches, you should always use the `--rebase` flag to `git pull`, or if you are usually handling many temporary "to be in a github pull request" branches, run following to automate this:
 
 ```bash
 git config branch.autosetuprebase local
