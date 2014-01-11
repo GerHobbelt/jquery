@@ -595,8 +595,8 @@ jQuery.event = {
 			// Prevent default action if we're still in the Gordian knot
 			// Besides, for cross-browser consistency, don't fire native .click() on links
 			_default: function( event ) {
-				var target = event.target;
-				var rv = (target.type === "checkbox" && target.click && jQuery.nodeName( target, "input" ) && jQuery._data( target, "click" ));
+				var target = event.target,
+				    rv = (target.type === "checkbox" && target.click && jQuery.nodeName( target, "input" ) && jQuery._data( target, "click" ));
 				return rv || jQuery.nodeName( event.target, "a" );
 			}
 		},
