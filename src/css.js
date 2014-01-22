@@ -25,7 +25,7 @@ var
 	// see here for display values: https://developer.mozilla.org/en-US/docs/CSS/display
 	rdisplayswap = /^(none|table(?!-c[ea]).+)/,
 	rnumsplit = new RegExp( "^(" + pnum + ")(.*)$", "i" ),
-	rrelNum = new RegExp( "^([+-])=(" + pnum + ")", "i" ),
+	rrelNum = new RegExp( "^([+-])=(" + pnum + ")(.*)", "i" ),
 
 	cssShow = { position: "absolute", visibility: "hidden", display: "block" },
 	cssNormalTransform = {
@@ -263,7 +263,11 @@ jQuery.extend({
 
 			// convert relative number strings (+= or -=) to relative numbers. #7345
 			if ( type === "string" && (ret = rrelNum.exec( value )) ) {
-				value = ( ret[1] + 1 ) * ret[2] + parseFloat( jQuery.css( elem, name ) );
+				value = parseFloat( jQuery.css( elem, name ) );
+				if ( ret[3] === "%" && elem.parentNode !== null ) {
+					value = value / parseFloat( jQuery.css( elem.parentNode, name ) ) * 100;
+				}
+				value += ( ret[1] + 1 ) * ret[2];
 				// Fixes bug #9237
 				type = "number";
 			}
@@ -275,7 +279,7 @@ jQuery.extend({
 
 			// If a number was passed in, add 'px' to the (except for certain CSS properties)
 			if ( type === "number" && !jQuery.cssNumber[ origName ] ) {
-				value += "px";
+				value += ret ? ret[3] : "px";
 			}
 
 			// Fixes #8908, it can be done more correctly by specifying setters in cssHooks,
