@@ -71,14 +71,6 @@ jQuery.fn.extend({
 
 jQuery.extend({
 	valHooks: {
-		option: {
-			get: function( elem ) {
-				// attributes.value is undefined in Blackberry 4.7 but
-				// uses .value. See #6932
-				var val = elem.attributes.value;
-				return !val || val.specified ? elem.value : elem.text;
-			}
-		},
 		select: {
 			get: function( elem ) {
 				var value, option,
@@ -125,7 +117,7 @@ jQuery.extend({
 
 				while ( i-- ) {
 					option = options[ i ];
-					if ( (option.selected = jQuery.inArray( jQuery(option).val(), values ) >= 0) ) {
+					if ( (option.selected = jQuery.inArray( option.value, values ) >= 0) ) {
 						optionSet = true;
 					}
 				}

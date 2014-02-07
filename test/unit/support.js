@@ -83,6 +83,22 @@ testIframeWithCallback( "Check CSP (https://developer.mozilla.org/en-US/docs/Sec
 			"radioValue": false,
 			"reliableMarginRight": true
 		};
+	} else if ( /trident\/7\.0/i.test( userAgent ) ) {
+		expected = {
+			"ajax": true,
+			"boxSizingReliable": false,
+			"checkClone": true,
+			"checkOn": true,
+			"clearCloneStyle": false,
+			"cors": true,
+			"focusinBubbles": true,
+			"noCloneChecked": false,
+			"optDisabled": true,
+			"optSelected": false,
+			"pixelPosition": true,
+			"radioValue": false,
+			"reliableMarginRight": true
+		};
 	} else if ( /msie 10\.0/i.test( userAgent ) ) {
 		expected = {
 			"ajax": true,
@@ -115,7 +131,7 @@ testIframeWithCallback( "Check CSP (https://developer.mozilla.org/en-US/docs/Sec
 			"radioValue": false,
 			"reliableMarginRight": true
 		};
-	} else if ( /6\.0\.\d+ safari/i.test( userAgent ) ) {
+	} else if ( /7\.0(\.\d+|) safari/i.test( userAgent ) ) {
 		expected = {
 			"ajax": true,
 			"boxSizingReliable": true,
@@ -131,7 +147,23 @@ testIframeWithCallback( "Check CSP (https://developer.mozilla.org/en-US/docs/Sec
 			"radioValue": true,
 			"reliableMarginRight": true
 		};
-	} else if ( /5\.1\.\d+ safari/i.test( userAgent ) ) {
+	} else if ( /6\.0(\.\d+|) safari/i.test( userAgent ) ) {
+		expected = {
+			"ajax": true,
+			"boxSizingReliable": true,
+			"checkClone": true,
+			"checkOn": true,
+			"clearCloneStyle": true,
+			"cors": true,
+			"focusinBubbles": false,
+			"noCloneChecked": true,
+			"optDisabled": true,
+			"optSelected": true,
+			"pixelPosition": false,
+			"radioValue": true,
+			"reliableMarginRight": true
+		};
+	} else if ( /5\.1(\.\d+|) safari/i.test( userAgent ) ) {
 		expected = {
 			"ajax":true,
 			"boxSizingReliable": true,
@@ -160,6 +192,22 @@ testIframeWithCallback( "Check CSP (https://developer.mozilla.org/en-US/docs/Sec
 			"optDisabled": true,
 			"optSelected": true,
 			"pixelPosition": true,
+			"radioValue": true,
+			"reliableMarginRight": true
+		};
+	} else if ( /iphone os 6_0/i.test( userAgent ) ) {
+		expected = {
+			"ajax": true,
+			"boxSizingReliable": true,
+			"checkClone": true,
+			"checkOn": true,
+			"clearCloneStyle": true,
+			"cors": true,
+			"focusinBubbles": false,
+			"noCloneChecked": true,
+			"optDisabled": true,
+			"optSelected": true,
+			"pixelPosition": false,
 			"radioValue": true,
 			"reliableMarginRight": true
 		};
