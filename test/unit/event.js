@@ -1787,6 +1787,7 @@ test( "delegated event with delegateTarget-relative selector", function() {
 		.end()
 		.find("a").trigger("click").end()
 		.find("#ul0").off();
+
 	markup.remove();
 });
 
