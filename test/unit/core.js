@@ -457,7 +457,7 @@ test("isFunction", function() {
 });
 
 test( "isNumeric", function() {
-	expect( 36 );
+	expect( 38 );
 
 	var t = jQuery.isNumeric,
 		Traditionalists = /** @constructor */ function(n) {
@@ -505,6 +505,8 @@ test( "isNumeric", function() {
 	equal( t(Number.NEGATIVE_INFINITY), false, "Negative Infinity");
 	equal( t(rong), false, "Custom .toString returning non-number");
 	equal( t({}), false, "Empty object");
+	equal( t( [] ), false, "Empty array" );
+	equal( t( [ 42 ] ), false, "Array with one number" );
 	equal( t(function(){} ), false, "Instance of a function");
 	equal( t( new Date() ), false, "Instance of a Date");
 	equal( t(function(){} ), false, "Instance of a function");
@@ -1503,14 +1505,26 @@ testIframeWithCallback( "Conditional compilation compatibility (#13274)", "core/
 	ok( $(), "jQuery executes" );
 });
 
-testIframeWithCallback( "document ready when jQuery loaded asynchronously (#13655)", "core/dynamic_ready.html", function( ready ) {
-	expect( 1 );
-	equal( true, ready, "document ready correctly fired when jQuery is loaded after DOMContentLoaded" );
-});
+// iOS7 doesn't fire the load event if the long-loading iframe gets its source reset to about:blank.
+// This makes this test fail but it doesn't seem to cause any real-life problems so blacklisting
+// this test there is preferred to complicating the hard-to-test core/ready code further.
+if ( !/iphone os 7_/i.test( navigator.userAgent ) ) {
+	testIframeWithCallback( "document ready when jQuery loaded asynchronously (#13655)", "core/dynamic_ready.html", function( ready ) {
+		expect( 1 );
+		equal( true, ready, "document ready correctly fired when jQuery is loaded after DOMContentLoaded" );
+	});
+}
 
 testIframeWithCallback( "Tolerating alias-masked DOM properties (#14074)", "core/aliased.html",
 	function( errors ) {
 			expect( 1 );
 			deepEqual( errors, [], "jQuery loaded" );
+	}
+);
+
+testIframeWithCallback( "Don't call window.onready (#14802)", "core/onready.html",
+	function( error ) {
+			expect( 1 );
+			equal( error, false, "no call to user-defined onready" );
 	}
 );

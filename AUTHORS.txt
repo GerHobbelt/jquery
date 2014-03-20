@@ -215,3 +215,5 @@ John Paul <john@johnkpaul.com>
 Jakob Stoeck <jakob@pokermania.de>
 Christopher Jones <chris@cjqed.com>
 Forbes Lindesay <forbes@lindesay.co.uk>
+S. Andrew Sheppard <andrew@wq.io>
+Roman Reiß <me@silverwind.io>

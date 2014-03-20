@@ -1532,17 +1532,10 @@ module( "ajax", {
 		}
 	} );
 
-	// Support: Chrome 31.
-	// Chrome 31 doesn't fire Ajax requests in beforeunload event handler.
-	// There is no way for us to workaround it and it's been fixed in Chrome 32
-	// so let's just blacklist Chrome 31 as long as it's in TestSwarm.
-	// See https://code.google.com/p/chromium/issues/detail?id=321241
-	if ( navigator.userAgent.indexOf( " Chrome/31." ) === -1 ) {
-		testIframeWithCallback( "#14379 - jQuery.ajax() on unload", "ajax/onunload.html", function( status ) {
-			expect( 1 );
-			strictEqual( status, "success", "Request completed" );
-		});
-	}
+	testIframeWithCallback( "#14379 - jQuery.ajax() on unload", "ajax/onunload.html", function( status ) {
+		expect( 1 );
+		strictEqual( status, "success", "Request completed" );
+	});
 
 	ajaxTest( "#14683 - jQuery.ajax() - Exceptions thrown synchronously by xhr.send should be caught", 4, [
 		{
@@ -1803,6 +1796,14 @@ module( "ajax", {
 	asyncTest( "jQuery.fn.load( URL_SELECTOR )", 1, function() {
 		jQuery("#first").load( "data/test3.html div.user", function() {
 			strictEqual( jQuery( this ).children("div").length, 2, "Verify that specific elements were injected" );
+			start();
+		});
+	});
+
+	// Selector should be trimmed to avoid leading spaces (#14773)
+	asyncTest( "jQuery.fn.load( URL_SELECTOR with spaces )", 1, function() {
+		jQuery("#first").load( "data/test3.html   #superuser ", function() {
+			strictEqual( jQuery( this ).children("div").length, 1, "Verify that specific elements were injected" );
 			start();
 		});
 	});

@@ -2,14 +2,16 @@ module.exports = function( grunt ) {
 
 	"use strict";
 
-	grunt.registerTask( "testswarm", function( commit, configFile ) {
-		var jobName,
+	grunt.registerTask( "testswarm", function( commit, configFile, projectName ) {
+		var jobName, config, tests,
 			testswarm = require( "testswarm" ),
 			runs = {},
 			done = this.async(),
-			pull = /PR-(\d+)/.exec( commit ),
-			config = grunt.file.readJSON( configFile ).jquery,
-			tests = grunt.config([ this.name, "tests" ]);
+			pull = /PR-(\d+)/.exec( commit );
+
+		projectName = projectName || "jquery";
+		config = grunt.file.readJSON( configFile )[ projectName ];
+		tests = grunt.config([ this.name, "tests" ]);
 
 		if ( pull ) {
 			jobName = "Pull <a href='https://github.com/jquery/jquery/pull/" +
@@ -23,10 +25,8 @@ module.exports = function( grunt ) {
 			runs[ test ] = config.testUrl + commit + "/test/index.html?module=" + test;
 		});
 
-		testswarm.createClient( {
-			url: config.swarmUrl,
-			pollInterval: 10000,
-			timeout: 1000 * 60 * 30
+		testswarm.createClient({
+			url: config.swarmUrl
 		} )
 		.addReporter( testswarm.reporters.cli )
 		.auth( {
@@ -38,7 +38,10 @@ module.exports = function( grunt ) {
 				name: jobName,
 				runs: runs,
 				runMax: config.runMax,
-				browserSets: [ "popular-no-old-ie", "ios" ]
+				browserSets: projectName === "jqueryweekly" ?
+					"weekly-no-old-ie" :
+					[ "popular-no-old-ie", "ios" ],
+				timeout: projectName === "jqueryweekly" ? 1000 * 60 * 60 : 1000 * 60 * 30
 			}, function( err, passed ) {
 				if ( err ) {
 					grunt.log.error( err );

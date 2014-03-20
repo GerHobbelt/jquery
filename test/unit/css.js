@@ -204,7 +204,7 @@ test( "css() explicit and relative values", 29, function() {
 });
 
 test("css(String, Object)", function() {
-	expect( 19 );
+	expect( 20 );
 	var j, div, display, ret, success;
 
 	jQuery("#nothiddendiv").css("top", "-1em");
@@ -239,15 +239,18 @@ test("css(String, Object)", function() {
 	equal( ret, div, "Make sure setting undefined returns the original set." );
 	equal( div.css("display"), display, "Make sure that the display wasn't changed." );
 
-	// Test for Bug #5509
 	success = true;
 	try {
-		jQuery("#foo").css("backgroundColor", "rgba(0, 0, 0, 0.1)");
+		jQuery( "#foo" ).css( "backgroundColor", "rgba(0, 0, 0, 0.1)" );
 	}
 	catch (e) {
 		success = false;
 	}
-	ok( success, "Setting RGBA values does not throw Error" );
+	ok( success, "Setting RGBA values does not throw Error (#5509)" );
+
+	jQuery( "#foo" ).css( "font", "7px/21px sans-serif" );
+	strictEqual( jQuery( "#foo" ).css( "line-height" ), "21px",
+		"Set font shorthand property (#14759)" );
 });
 
 test( "css(Array)", function() {
@@ -813,12 +816,13 @@ testIframeWithCallback( "css('width') should work correctly before document read
 );
 
 test("certain css values of 'normal' should be convertable to a number, see #8627", function() {
-	expect ( 2 );
+	expect ( 3 );
 
 	var el = jQuery("<div style='letter-spacing:normal;font-weight:normal;'>test</div>").appendTo("#qunit-fixture");
 
 	ok( jQuery.isNumeric( parseFloat( el.css("letterSpacing") ) ), "css('letterSpacing') not convertable to number, see #8627" );
 	ok( jQuery.isNumeric( parseFloat( el.css("fontWeight") ) ), "css('fontWeight') not convertable to number, see #8627" );
+	equal( typeof el.css( "fontWeight" ), "string", ".css() returns a string" );
 });
 
 // only run this test in IE9
@@ -922,10 +926,23 @@ test( ":visible/:hidden selectors", function() {
 	t( "Is Hidden", "#form input:hidden", ["hidden1","hidden2"] );
 });
 
-test( "Override !important when changing styles (#14394)", function() {
+test( "Keep the last style if the new one isn't recognized by the browser (#14836)", function() {
+	expect( 2 );
+
+	var el;
+	el = jQuery( "<div></div>" ).css( "position", "absolute" ).css( "position", "fake value" );
+	equal( el.css( "position" ), "absolute", "The old style is kept when setting an unrecognized value" );
+	el = jQuery( "<div></div>" ).css( "position", "absolute" ).css( "position", " " );
+	equal( el.css( "position" ), "absolute", "The old style is kept when setting to a space" );
+});
+
+test( "Reset the style if set to an empty string", function() {
 	expect( 1 );
-	var el = jQuery( "<div style='display: block !important;'></div>" ).css( "display", "none" );
-	equal( el.css( "display" ), "none", "New style replaced !important" );
+	var el = jQuery( "<div></div>" ).css( "position", "absolute" ).css( "position", "" );
+	// Some browsers return an empty string; others "static". Both those cases mean the style
+	// was reset successfully so accept them both.
+	equal( el.css( "position" ) || "static", "static",
+		"The style can be reset by setting to an empty string" );
 });
 
 asyncTest( "Clearing a Cloned Element's Style Shouldn't Clear the Original Element's Style (#8908)", 24, function() {
