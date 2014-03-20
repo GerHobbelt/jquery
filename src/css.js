@@ -25,7 +25,7 @@ var
 	// see here for display values: https://developer.mozilla.org/en-US/docs/CSS/display
 	rdisplayswap = /^(none|table(?!-c[ea]).+)/,
 	rnumsplit = new RegExp( "^(" + pnum + ")(.*)$", "i" ),
-	rrelNum = new RegExp( "^([+-])=(" + pnum + ")", "i" ),
+	rrelNum = new RegExp( "^([+-])=(" + pnum + ")(.*)", "i" ),
 
 	cssShow = { position: "absolute", visibility: "hidden", display: "block" },
 	cssNormalTransform = {
@@ -241,6 +241,54 @@ jQuery.extend({
 		"float": "cssFloat"
 	},
 
+	// Convert some pixels into another CSS unity.
+	// It's used in $.style() for the += or -=.
+	// * px   : Number.
+	// * unit : String, like "%", "em", "px", ...
+	// * elem : Node, the current element.
+	// * prop : String, the CSS property.
+	pixelsToUnity: function( px, unit, elem, prop ) {
+		switch ( unit ) {
+		case "":
+		case "px":
+			return px; // Don't waste our time if there is no conversion to do.
+		case "em":
+			return px / jQuery.css( elem, "fontSize", "" ); // "em" refers to the fontSize of the current element.
+		case "%":
+			if ( /^(left$|right$|margin|padding)/.test( prop ) ) {
+				prop = "width";
+			} else if ( /^(top|bottom)$/.test( prop ) ) {
+				prop = "height";
+			}
+			elem = /^(relative|absolute|fixed)$/.test( jQuery.css( elem, "position" ) ) ?
+				elem.offsetParent : elem.parentNode;
+			if ( elem ) {
+				prop = jQuery.css( elem, prop, true );
+				if ( prop !== 0 ) {
+					return px / prop * 100;
+				}
+			}
+			return 0;
+		}
+		// The first time we calculate how many pixels there is in 1 meter
+		// for calculate what is 1 inch/cm/mm/etc.
+		if ( jQuery.pixelsToUnity.units === undefined ) {
+			var units = jQuery.pixelsToUnity.units = {},
+				div = document.createElement( "div" );
+			div.style.width = "100cm";
+			document.body.appendChild( div ); // If we don't link the <div> to something, the offsetWidth attribute will be not set correctly.
+			units.mm = div.offsetWidth / 1000;
+			document.body.removeChild( div );
+			units.cm = units.mm * 10;
+			units.in = units.cm * 2.54;
+			units.pt = units.in * 1 / 72;
+			units.pc = units.pt * 12;
+		}
+		// If the unity specified is not recognized we return the value.
+		unit = jQuery.pixelsToUnity.units[ unit ];
+		return unit ? px / unit : px;
+	},
+
 	// Get and set the style property on a DOM Node
 	style: function( elem, name, value, extra ) {
 		// Don't set styles on text and comment nodes
@@ -265,7 +313,8 @@ jQuery.extend({
 
 			// convert relative number strings (+= or -=) to relative numbers. #7345
 			if ( type === "string" && (ret = rrelNum.exec( value )) ) {
-				value = ( ret[1] + 1 ) * ret[2] + parseFloat( jQuery.css( elem, name ) );
+				value = jQuery.css( elem, name, "" );
+				value = jQuery.pixelsToUnity( value, ret[3], elem, name ) + ( ret[1] + 1 ) * ret[2];
 				// Fixes bug #9237
 				type = "number";
 			}
@@ -277,7 +326,7 @@ jQuery.extend({
 
 			// If a number was passed in, add 'px' to the (except for certain CSS properties)
 			if ( type === "number" && !jQuery.cssNumber[ origName ] ) {
-				value += "px";
+				value += ret && ret[3] ? ret[3] : "px";
 			}
 
 			// Fixes #8908, it can be done more correctly by specifying setters in cssHooks,
