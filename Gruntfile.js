@@ -10,6 +10,7 @@ module.exports = function( grunt ) {
 	}
 
 	var gzip = require( "gzip-js" ),
+		spawn = require( "child_process" ).spawn,
 		srcHintOptions = readOptionalJSON( "src/.jshintrc" );
 
 	// The concatenated file won't pass onevar
@@ -54,6 +55,9 @@ module.exports = function( grunt ) {
 				files: {
 					"sizzle/dist": "sizzle/dist",
 					"sizzle/LICENSE.txt": "sizzle/LICENSE.txt",
+
+					"npo/npo.js": "native-promise-only/npo.js",
+					"q/LICENSE.txt": "q/LICENSE",
 
 					"qunit/qunit.js": "qunitjs/qunit/qunit.js",
 					"qunit/qunit.css": "qunitjs/qunit/qunit.css",
@@ -156,6 +160,18 @@ module.exports = function( grunt ) {
 	grunt.loadTasks( "build/tasks" );
 
 	grunt.registerTask( "lint", [ "jshint", "jscs" ] );
+
+	grunt.registerTask( "promises-aplus-tests", function() {
+	    var done = this.async();
+		spawn( "node", [
+			"./node_modules/.bin/promises-aplus-tests",
+			"./promises-aplus-adapter.js"
+		], {
+			stdio: "inherit"
+		}).on( "close", function( code ) {
+			done( code === 0 );
+		});
+	});
 
 	// Short list as a high frequency watch task
 	grunt.registerTask( "dev", [ "build:*:*", "lint" ] );
