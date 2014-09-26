@@ -1,11 +1,10 @@
 define([
 	"../core",
 	"../var/rnotwhite",
-	"../var/strundefined",
 	"../core/access",
 	"./support",
 	"../selector"
-], function( jQuery, rnotwhite, strundefined, access, support ) {
+], function( jQuery, rnotwhite, access, support ) {
 
 var nodeHook, boolHook,
 	attrHandle = jQuery.expr.attrHandle;
@@ -33,7 +32,7 @@ jQuery.extend({
 		}
 
 		// Fallback to prop when attributes are not supported
-		if ( typeof elem.getAttribute === strundefined ) {
+		if ( typeof elem.getAttribute === "undefined" ) {
 			return jQuery.prop( elem, name, value );
 		}
 
@@ -50,7 +49,9 @@ jQuery.extend({
 			if ( value === null ) {
 				jQuery.removeAttr( elem, name );
 
-			} else if ( hooks && "set" in hooks && (ret = hooks.set( elem, value, name )) !== undefined ) {
+			} else if ( hooks && "set" in hooks &&
+				(ret = hooks.set( elem, value, name )) !== undefined ) {
+
 				return ret;
 
 			} else {
@@ -96,8 +97,6 @@ jQuery.extend({
 			set: function( elem, value ) {
 				if ( !support.radioValue && value === "radio" &&
 					jQuery.nodeName( elem, "input" ) ) {
-					// Setting the type on a radio button after the value resets the value in IE6-9
-					// Reset value to default in case type is set after value during creation
 					var val = elem.value;
 					elem.setAttribute( "type", value );
 					if ( val ) {

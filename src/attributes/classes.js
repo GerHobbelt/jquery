@@ -1,10 +1,9 @@
 define([
 	"../core",
 	"../var/rnotwhite",
-	"../var/strundefined",
-	"../data/var/data_priv",
+	"../data/var/dataPriv",
 	"../core/init"
-], function( jQuery, rnotwhite, strundefined, data_priv ) {
+], function( jQuery, rnotwhite, dataPriv ) {
 
 var rclass = /[\t\r\n\f]/g;
 
@@ -83,7 +82,7 @@ jQuery.fn.extend({
 						}
 					}
 
-					// only assign if different to avoid unneeded rendering.
+					// Only assign if different to avoid unneeded rendering.
 					finalValue = value ? jQuery.trim( cur ) : "";
 					if ( elem.className !== finalValue ) {
 						elem.className = finalValue;
@@ -104,20 +103,22 @@ jQuery.fn.extend({
 
 		if ( jQuery.isFunction( value ) ) {
 			return this.each(function( i ) {
-				jQuery( this ).toggleClass( value.call(this, i, this.className, stateVal), stateVal );
+				jQuery( this ).toggleClass(
+					value.call(this, i, this.className, stateVal), stateVal
+				);
 			});
 		}
 
 		return this.each(function() {
 			if ( type === "string" ) {
-				// toggle individual class names
+				// Toggle individual class names
 				var className,
 					i = 0,
 					self = jQuery( this ),
 					classNames = value.match( rnotwhite ) || [];
 
 				while ( (className = classNames[ i++ ]) ) {
-					// check each className given, space separated list
+					// Check each className given, space separated list
 					if ( self.hasClass( className ) ) {
 						self.removeClass( className );
 					} else {
@@ -126,17 +127,19 @@ jQuery.fn.extend({
 				}
 
 			// Toggle whole class name
-			} else if ( type === strundefined || type === "boolean" ) {
+			} else if ( value === undefined || type === "boolean" ) {
 				if ( this.className ) {
 					// store className if set
-					data_priv.set( this, "__className__", this.className );
+					dataPriv.set( this, "__className__", this.className );
 				}
 
-				// If the element has a class name or if we're passed "false",
+				// If the element has a class name or if we're passed `false`,
 				// then remove the whole classname (if there was one, the above saved it).
 				// Otherwise bring back whatever was previously saved (if anything),
 				// falling back to the empty string if nothing was stored.
-				this.className = this.className || value === false ? "" : data_priv.get( this, "__className__" ) || "";
+				this.className = this.className || value === false ?
+					"" :
+					dataPriv.get( this, "__className__" ) || "";
 			}
 		});
 	},
@@ -146,7 +149,9 @@ jQuery.fn.extend({
 			i = 0,
 			l = this.length;
 		for ( ; i < l; i++ ) {
-			if ( this[i].nodeType === 1 && (" " + this[i].className + " ").replace(rclass, " ").indexOf( className ) >= 0 ) {
+			if ( this[i].nodeType === 1 &&
+				(" " + this[i].className + " ").replace(rclass, " ").indexOf( className ) >= 0 ) {
+
 				return true;
 			}
 		}

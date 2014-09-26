@@ -19,7 +19,7 @@ module.exports = function( grunt ) {
 	grunt.initConfig({
 		pkg: grunt.file.readJSON( "package.json" ),
 		dst: readOptionalJSON( "dist/.destination.json" ),
-		compare_size: {
+		"compare_size": {
 			files: [ "dist/jquery.js", "dist/jquery.min.js" ],
 			options: {
 				compress: {
@@ -39,44 +39,36 @@ module.exports = function( grunt ) {
 				],
 				// Exclude specified modules if the module matching the key is removed
 				removeWith: {
-					ajax: [ "manipulation/_evalUrl" ],
+					ajax: [ "manipulation/_evalUrl", "event/ajax" ],
 					callbacks: [ "deferred" ],
 					css: [ "effects", "dimensions", "offset" ],
 					sizzle: [ "css/hiddenVisibleSelectors", "effects/animatedSelector" ]
 				}
 			}
 		},
-		bowercopy: {
-			options: {
-				clean: true
-			},
-			src: {
-				files: {
-					"src/sizzle/dist": "sizzle/dist",
-					"src/sizzle/test/data": "sizzle/test/data",
-					"src/sizzle/test/unit": "sizzle/test/unit",
-					"src/sizzle/test/index.html": "sizzle/test/index.html",
-					"src/sizzle/test/jquery.js": "sizzle/test/jquery.js"
-				}
-			},
-			tests: {
+		npmcopy: {
+			all: {
 				options: {
-					destPrefix: "test/libs"
+					destPrefix: "external"
 				},
 				files: {
-					"qunit": "qunit/qunit",
-					"require.js": "requirejs/require.js",
-					"sinon/fake_timers.js": "sinon/lib/sinon/util/fake_timers.js"
+					"sizzle/dist": "sizzle/dist",
+					"sizzle/LICENSE.txt": "sizzle/LICENSE.txt",
+
+					"qunit/qunit.js": "qunitjs/qunit/qunit.js",
+					"qunit/qunit.css": "qunitjs/qunit/qunit.css",
+					"qunit/MIT-LICENSE.txt": "qunitjs/MIT-LICENSE.txt",
+
+					"requirejs/require.js": "requirejs/require.js",
+
+					"sinon/fake_timers.js": "sinon/lib/sinon/util/fake_timers.js",
+					"sinon/LICENSE.txt": "sinon/LICENSE"
 				}
 			}
 		},
 		jsonlint: {
 			pkg: {
 				src: [ "package.json" ]
-			},
-
-			jscs: {
-				src: [ ".jscs.json" ]
 			},
 
 			bower: {
@@ -86,8 +78,7 @@ module.exports = function( grunt ) {
 		jshint: {
 			all: {
 				src: [
-					"src/**/*.js", "Gruntfile.js", "test/**/*.js", "build/tasks/*",
-					"build/{bower-install,release-notes,release}.js"
+					"src/**/*.js", "Gruntfile.js", "test/**/*.js", "build/**/*.js"
 				],
 				options: {
 					jshintrc: true
@@ -101,10 +92,32 @@ module.exports = function( grunt ) {
 		jscs: {
 			src: "src/**/*.js",
 			gruntfile: "Gruntfile.js",
+
+			// Right now, check only test helpers
+			test: [ "test/data/testrunner.js" ],
+			release: [ "build/*.js", "!build/release-notes.js" ],
 			tasks: "build/tasks/*.js"
 		},
 		testswarm: {
-			tests: "ajax attributes callbacks core css data deferred dimensions effects event manipulation offset queue selector serialize support traversing Sizzle".split( " " )
+			tests: [
+				"ajax",
+				"attributes",
+				"callbacks",
+				"core",
+				"css",
+				"data",
+				"deferred",
+				"dimensions",
+				"effects",
+				"event",
+				"manipulation",
+				"offset",
+				"queue",
+				"selector",
+				"serialize",
+				"support",
+				"traversing"
+			]
 		},
 		watch: {
 			files: [ "<%= jshint.all.src %>" ],
@@ -117,17 +130,17 @@ module.exports = function( grunt ) {
 				},
 				options: {
 					preserveComments: false,
-					sourceMap: "dist/jquery.min.map",
-					sourceMappingURL: "jquery.min.map",
+					sourceMap: true,
+					sourceMapName: "dist/jquery.min.map",
 					report: "min",
 					beautify: {
-						ascii_only: true
+						"ascii_only": true
 					},
 					banner: "/*! jQuery v<%= pkg.version %> | " +
 						"(c) 2005, <%= grunt.template.today('yyyy') %> jQuery Foundation, Inc. | " +
 						"jquery.org/license */",
 					compress: {
-						hoist_funs: false,
+						"hoist_funs": false,
 						loops: false,
 						unused: false
 					}
@@ -142,11 +155,10 @@ module.exports = function( grunt ) {
 	// Integrate jQuery specific tasks
 	grunt.loadTasks( "build/tasks" );
 
-	// Alias bower to bowercopy
-	grunt.registerTask( "bower", "bowercopy" );
+	grunt.registerTask( "lint", [ "jshint", "jscs" ] );
 
 	// Short list as a high frequency watch task
-	grunt.registerTask( "dev", [ "build:*:*", "jshint", "jscs" ] );
+	grunt.registerTask( "dev", [ "build:*:*", "lint" ] );
 
 	// Default grunt
 	grunt.registerTask( "default", [ "jsonlint", "dev", "uglify", "dist:*", "compare_size" ] );

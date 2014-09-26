@@ -16,8 +16,9 @@ http.request({
 	host: "bugs.jquery.com",
 	port: 80,
 	method: "GET",
-	path: "/query?status=closed&resolution=fixed&max=400&component=!web&order=component&milestone=" + version
-}, function (res) {
+	path: "/query?status=closed&resolution=fixed&max=400&" +
+		"component=!web&order=component&milestone=" + version
+}, function( res ) {
 	var data = [];
 
 	res.on( "data", function( chunk ) {
@@ -53,4 +54,3 @@ http.request({
 
 	});
 }).end();
-

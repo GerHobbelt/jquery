@@ -5,10 +5,11 @@ if ( !jQuery.fx ) {
 	return;
 }
 
-var off = jQuery.fx.off;
+var oldRaf = window.requestAnimationFrame;
 
 module("effects", {
 	setup: function() {
+		window.requestAnimationFrame = null;
 		this.clock = sinon.useFakeTimers( 505877050 );
 		this._oldInterval = jQuery.fx.interval;
 		jQuery.fx.interval = 10;
@@ -19,14 +20,14 @@ module("effects", {
 		jQuery.now = Date.now;
 		jQuery.fx.stop();
 		jQuery.fx.interval = this._oldInterval;
-		jQuery.fx.off = off;
+		window.requestAnimationFrame = oldRaf;
 		return moduleTeardown.apply( this, arguments );
 	}
 });
 
 test("sanity check", function() {
 	expect(1);
-	ok( jQuery("#dl:visible, #qunit-fixture:visible, #foo:visible").length === 3, "QUnit state is correct for testing effects" );
+	equal( jQuery("#dl:visible, #qunit-fixture:visible, #foo:visible").length, 2, "QUnit state is correct for testing effects" );
 });
 
 test("show() basic", 2, function() {
@@ -1620,6 +1621,19 @@ test( "hide, fadeOut and slideUp called on element width height and width = 0 sh
 	this.clock.tick( 400 );
 });
 
+test( "hide should not leave hidden inline elements visible (#14848)", 2, function() {
+	var el = jQuery("#simon1");
+
+	el.hide( 1, function() {
+		equal( el.css( "display" ), "none", "hidden" );
+		el.hide( 1, function() {
+			equal( el.css( "display" ), "none", "still hidden" );
+		});
+	});
+
+	this.clock.tick( 100 );
+});
+
 test( "Handle queue:false promises", 10, function() {
 	var foo = jQuery( "#foo" ).clone().addBack(),
 		step = 1;
@@ -2144,5 +2158,57 @@ test( "slideDown() after stop() (#13483)", 2, function() {
 
 		clock.tick( 10 );
 });
+
+test( "Respect display value on inline elements (#14824)", 2, function() {
+	var clock = this.clock,
+		fromStyleSheet = jQuery( "<span id='span-14824' />" ),
+		fromStyleAttr = jQuery( "<span style='display: block;' />" );
+
+	jQuery( "#qunit-fixture" ).append( fromStyleSheet, fromStyleAttr );
+
+	fromStyleSheet.slideUp(function() {
+		jQuery( this ).slideDown( function() {
+			equal( jQuery( this ).css( "display" ), "block",
+				"Respect previous display value (from stylesheet) on span element" );
+		});
+	});
+
+	fromStyleAttr.slideUp( function() {
+		jQuery( this ).slideDown( function() {
+			equal( jQuery( this ).css( "display" ), "block",
+				"Respect previous display value (from style attribute) on span element" );
+		});
+	});
+
+	clock.tick( 800 );
+});
+
+test( "Animation should go to its end state if document.hidden = true", 1, function() {
+	var height;
+	if ( Object.defineProperty ) {
+
+		// Can't rewrite document.hidden property if its host property
+		try {
+			Object.defineProperty( document, "hidden", {
+				get: function() {
+					return true;
+				}
+			});
+		} catch ( e ) {}
+	} else {
+		document.hidden = true;
+	}
+
+	if ( document.hidden ) {
+		height = jQuery( "#qunit-fixture" ).animate({ height: 500 } ).height();
+
+		equal( height, 500, "Animation should happen immediately if document.hidden = true" );
+		jQuery( document ).removeProp( "hidden" );
+
+	} else {
+		ok( true, "Can't run the test since we can't reproduce correct environment for it" );
+	}
+});
+
 
 })();

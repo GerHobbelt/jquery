@@ -409,7 +409,7 @@ test( "XML DOM manipulation (#9960)", function() {
 
 	expect( 5 );
 
-	var
+	var scxml1Adopted,
 		xmlDoc1 = jQuery.parseXML("<scxml xmlns='http://www.w3.org/2005/07/scxml' version='1.0'><state x='100' y='100' initial='actions' id='provisioning'></state><state x='100' y='100' id='error'></state><state x='100' y='100' id='finished' final='true'></state></scxml>"),
 		xmlDoc2 = jQuery.parseXML("<scxml xmlns='http://www.w3.org/2005/07/scxml' version='1.0'><state id='provisioning3'></state></scxml>"),
 		xml1 = jQuery( xmlDoc1 ),
@@ -417,6 +417,15 @@ test( "XML DOM manipulation (#9960)", function() {
 		scxml1 = jQuery( "scxml", xml1 ),
 		scxml2 = jQuery( "scxml", xml2 ),
 		state = scxml2.find("state");
+
+	// Android 2.3 doesn't automatically adopt nodes from foreign documents.
+	// Although technically this is compliant behavior, no other browser
+	// (including newer Android Browsers) behave in this way so do the adopting
+	// just for Android 2.3.
+	// Support: Android 2.3
+	if ( /android 2\.3/i.test( navigator.userAgent ) ) {
+		state = jQuery( xmlDoc1.adoptNode( state[ 0 ] ) );
+	}
 
 	scxml1.append( state );
 	strictEqual( scxml1[0].lastChild, state[0], "append" );
@@ -430,7 +439,13 @@ test( "XML DOM manipulation (#9960)", function() {
 	scxml1.find("#provisioning").before( state );
 	strictEqual( scxml1[0].firstChild, state[0], "before" );
 
-	scxml2.replaceWith( scxml1 );
+	// Support: Android 2.3
+	if ( /android 2\.3/i.test( navigator.userAgent ) ) {
+		scxml1Adopted = jQuery( xmlDoc2.adoptNode( scxml1[ 0 ] ) );
+		scxml2.replaceWith( scxml1Adopted );
+	} else {
+		scxml2.replaceWith( scxml1 );
+	}
 	deepEqual( jQuery( "state", xml2 ).get(), scxml1.find("state").get(), "replaceWith" );
 });
 
@@ -2179,28 +2194,32 @@ test( "Ensure oldIE creates a new set on appendTo (#8894)", function() {
 	strictEqual( jQuery("<p/>").appendTo("<div/>").end().length, jQuery("<p>test</p>").appendTo("<div/>").end().length, "Elements created with createElement and with createDocumentFragment should be treated alike" );
 });
 
-test( "html() - script exceptions bubble (#11743)", function() {
+asyncTest( "html() - script exceptions bubble (#11743)", 2, function() {
+	var onerror = window.onerror;
 
-	expect( 3 );
-
-	throws(function() {
-		jQuery("#qunit-fixture").html("<script>undefined(); ok( false, 'Exception not thrown' );</script>");
-		ok( false, "Exception ignored" );
-	}, "Exception bubbled from inline script" );
-
-	if ( jQuery.ajax ) {
-		var onerror = window.onerror;
-		window.onerror = function() {
-			ok( true, "Exception thrown in remote script" );
-		};
-
-		jQuery("#qunit-fixture").html("<script src='data/badcall.js'></script>");
-		ok( true, "Exception ignored" );
+	setTimeout(function() {
 		window.onerror = onerror;
-	} else {
-		ok( true, "No jQuery.ajax" );
-		ok( true, "No jQuery.ajax" );
-	}
+
+		start();
+	}, 1000 );
+
+	window.onerror = function() {
+		ok( true, "Exception thrown" );
+
+		if ( jQuery.ajax ) {
+			window.onerror = function() {
+				ok( true, "Exception thrown in remote script" );
+			};
+
+			jQuery( "#qunit-fixture" ).html( "<script src='data/badcall.js'></script>" );
+			ok( true, "Exception ignored" );
+		} else {
+			ok( true, "No jQuery.ajax" );
+			ok( true, "No jQuery.ajax" );
+		}
+	};
+
+	jQuery( "#qunit-fixture" ).html( "<script>undefined();</script>" );
 });
 
 test( "checked state is cloned with clone()", function() {
@@ -2284,7 +2303,7 @@ test( "script evaluation (#11795)", function() {
 
 	if ( jQuery.ajax ) {
 		Globals.register("testBar");
-		jQuery("#qunit-fixture").append( "<script src='" + url("data/test.js") + "'/>" );
+		jQuery("#qunit-fixture").append( "<script src='" + url("data/testbar.php") + "'/>" );
 		strictEqual( window["testBar"], "bar", "Global script evaluation" );
 	} else {
 		ok( true, "No jQuery.ajax" );

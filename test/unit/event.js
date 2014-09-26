@@ -388,6 +388,7 @@ test("on immediate propagation", function() {
 
 test("on bubbling, isDefaultPrevented, stopImmediatePropagation", function() {
 	expect( 3 );
+
 	var $anchor2 = jQuery( "#anchor2" ),
 		$main = jQuery( "#qunit-fixture" ),
 		neverCallMe = function() {
@@ -418,13 +419,20 @@ test("on bubbling, isDefaultPrevented, stopImmediatePropagation", function() {
 	$anchor2.off( "click" );
 	$main.off( "click", "**" );
 
-	$anchor2.on( "click", function( e ) {
-		e.stopImmediatePropagation();
-		ok( true, "anchor was clicked and prop stopped" );
-	});
-	$anchor2[0].addEventListener( "click", neverCallMe, false );
-	fakeClick( $anchor2 );
-	$anchor2[0].removeEventListener( "click", neverCallMe );
+	// Android 2.3 doesn't support stopImmediatePropagation; jQuery fallbacks to stopPropagation
+	// in such a case.
+	// Support: Android 2.3
+	if ( /android 2\.3/i.test( navigator.userAgent ) ) {
+		ok( true, "Android 2.3, skipping native stopImmediatePropagation check" );
+	} else {
+		$anchor2.on( "click", function( e ) {
+			e.stopImmediatePropagation();
+			ok( true, "anchor was clicked and prop stopped" );
+		});
+		$anchor2[0].addEventListener( "click", neverCallMe, false );
+		fakeClick( $anchor2 );
+		$anchor2[0].removeEventListener( "click", neverCallMe );
+	}
 });
 
 test("on(), iframes", function() {
@@ -1434,7 +1442,7 @@ if ( window.onbeforeunload === null &&
 
 test("jQuery.Event( type, props )", function() {
 
-	expect(5);
+	expect(6);
 
 	var event = jQuery.Event( "keydown", { keyCode: 64 }),
 			handler = function( event ) {
@@ -1449,6 +1457,8 @@ test("jQuery.Event( type, props )", function() {
 	equal( jQuery.inArray("type", jQuery.event.props), -1, "'type' property not in props (#10375)" );
 
 	ok( "keyCode" in event, "Special 'keyCode' property exists" );
+
+	strictEqual( jQuery.isPlainObject( event ), false, "Instances of $.Event should not be identified as a plain object." );
 
 	jQuery("body").on( "keydown", handler ).trigger( event );
 
