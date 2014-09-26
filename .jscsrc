@@ -1,5 +1,7 @@
 {
 	"preset": "jquery",
+    
+    "maximumLineLength": 160,
 
-	"excludeFiles": [ "external", "src/intro.js", "src/outro.js" ]
+	"excludeFiles": [ "external", "src/intro.js", "src/outro.js", "src/sizzle/**", "test/libs/**", "test/qunit/**" ]
 }
