@@ -7,11 +7,24 @@ realpath() {
     [[ $1 = /* ]] && echo "$1" || echo "$curdir/${1#./}"
 }
 
-repoOwner=$( git config --get github.user )
+# How to obtain the default repository owner?
+# -------------------------------------------
+# 
+# 1. extract the name of the owner of the repository your currently standing in
+# 2. if that doesn't work, get the locally configured github user as set up in the git repository you're standing in
+# 3. if that doesn't work, get the local system globally configured github user
+# 4. okay, nothing works. So you must be GerHobbelt on a fresh machine, right?
+# 
+# Note: the RE is engineered to eat ANYTHING and only extract username from legal git r/w repository URLs (git@github.com:user/repo.git)
+# Note: this RE should work with BSD/OSX sed too:  http://stackoverflow.com/questions/12178924/os-x-sed-e-doesnt-accept-extended-regular-expressions
+repoOwner=$( git config --get remote.origin.url | sed -E -e 's/^[^:]+(:([^\/]+)\/)?.*$/\2/' )
 if test -z $repoOwner ; then
-    repoOwner=$( git config --global --get github.user )
-    if test -z "$repoOwner"; then
-        repoOwner=GerHobbelt
+    repoOwner=$( git config --get github.user )
+    if test -z $repoOwner ; then
+        repoOwner=$( git config --global --get github.user )
+        if test -z "$repoOwner"; then
+            repoOwner=GerHobbelt
+        fi
     fi
 fi
 
