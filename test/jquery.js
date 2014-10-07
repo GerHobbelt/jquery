@@ -7,43 +7,48 @@
 		QUnit = window.QUnit || parent.QUnit,
 		require = window.require || parent.require;
 
-	// iFrames won't load AMD (the iframe tests synchronously expect jQuery to be there)
-	QUnit.config.urlConfig.push({
-		id: "amd",
-		label: "Load with AMD",
-		tooltip: "Load the AMD jQuery file (and its dependencies)"
-	});
-	// If QUnit is on window, this is the main window
-	// This detection allows AMD tests to be run in an iframe
-	if ( QUnit.urlParams.amd && window.QUnit ) {
-		require.config({
-			baseUrl: path,
-			paths: {
-				sizzle: "external/sizzle/dist/sizzle"
-			}
+	if ( QUnit ) {
+		// iFrames won't load AMD (the iframe tests synchronously expect jQuery to be there)
+		QUnit.config.urlConfig.push({
+			id: "amd",
+			label: "Load with AMD",
+			tooltip: "Load the AMD jQuery file (and its dependencies)"
 		});
-		src = "src/jquery";
-		// Include tests if specified
-		if ( typeof loadTests !== "undefined" ) {
-			require( [ src ], loadTests );
-		} else {
-			require( [ src ] );
+		// If QUnit is on window, this is the main window
+		// This detection allows AMD tests to be run in an iframe
+		if ( QUnit.urlParams.amd && window.QUnit ) {
+			require.config({
+				baseUrl: path,
+				paths: {
+    				sizzle: "external/sizzle/dist/sizzle"
+				}
+			});
+			src = "src/jquery";
+			// Include tests if specified
+			if ( typeof loadTests !== "undefined" ) {
+				require( [ src ], loadTests );
+			} else {
+				require( [ src ] );
+			}
+			return;
 		}
-		return;
-	}
 
-	// Config parameter to use minified jQuery
-	QUnit.config.urlConfig.push({
-		id: "dev",
-		label: "Load unminified",
-		tooltip: "Load the development (unminified) jQuery file"
-	});
-	if ( QUnit.urlParams.dev ) {
-		src = "dist/jquery.js";
+		// Config parameter to use minified jQuery
+		QUnit.config.urlConfig.push({
+			id: "dev",
+			label: "Load unminified",
+			tooltip: "Load the development (unminified) jQuery file"
+		});
+		if ( QUnit.urlParams.dev ) {
+			src = "dist/jquery.js";
+		} else {
+			src = "dist/jquery.min.js";
+		}
 	} else {
-		src = "dist/jquery.min.js";
+		// stand-alone test, no QUnit loaded:
+		src = "dist/jquery.js";
 	}
-
+	
 	// Load jQuery
 	document.write( "<script id='jquery-js' src='" + path + src + "'><\x2Fscript>" );
 
