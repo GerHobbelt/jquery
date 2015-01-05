@@ -10,7 +10,6 @@ jQuery._evalUrl = function( url ) {
 		cache: true,
 		async: false,
 		global: false,
-        cache: true,            // do NOT apply cache-busting techniques to this one
         throws: true
 	});
 };
