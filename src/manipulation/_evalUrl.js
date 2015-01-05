@@ -9,7 +9,8 @@ jQuery._evalUrl = function( url ) {
 		dataType: "script",
 		async: false,
 		global: false,
-		"throws": true
+        cache: true,            // do NOT apply cache-busting techniques to this one
+        throws: true
 	});
 };
 
