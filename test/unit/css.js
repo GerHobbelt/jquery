@@ -204,11 +204,8 @@ test( "css() explicit and relative values", 29, function() {
 });
 
 test("css(String, Object)", function() {
-	expect( 20 );
+	expect( 19 );
 	var j, div, display, ret, success;
-
-	jQuery("#nothiddendiv").css("top", "-1em");
-	ok( jQuery("#nothiddendiv").css("top"), -16, "Check negative number in EMs." );
 
 	jQuery("#floatTest").css("float", "left");
 	equal( jQuery("#floatTest").css("float"), "left", "Modified CSS float using \"float\": Assert float is left");
@@ -228,8 +225,6 @@ test("css(String, Object)", function() {
 	j = jQuery("#nonnodes").contents();
 	j.css("overflow", "visible");
 	equal( j.css("overflow"), "visible", "Check node,textnode,comment css works" );
-	// opera sometimes doesn't update 'display' correctly, see #2037
-	jQuery("#t2037")[0].innerHTML = jQuery("#t2037")[0].innerHTML;
 	equal( jQuery("#t2037 .hidden").css("display"), "none", "Make sure browser thinks it is hidden" );
 
 	div = jQuery("#nothiddendiv");
@@ -251,6 +246,21 @@ test("css(String, Object)", function() {
 	jQuery( "#foo" ).css( "font", "7px/21px sans-serif" );
 	strictEqual( jQuery( "#foo" ).css( "line-height" ), "21px",
 		"Set font shorthand property (#14759)" );
+});
+
+test( "css(String, Object) with negative values", function() {
+	expect( 4 );
+
+	jQuery( "#nothiddendiv" ).css( "margin-top", "-10px" );
+	jQuery( "#nothiddendiv" ).css( "margin-left", "-10px" );
+	equal( jQuery( "#nothiddendiv" ).css( "margin-top" ), "-10px", "Ensure negative top margins work." );
+	equal( jQuery( "#nothiddendiv" ).css( "margin-left" ), "-10px", "Ensure negative left margins work." );
+
+	jQuery( "#nothiddendiv" ).css( "position", "absolute" );
+	jQuery( "#nothiddendiv" ).css( "top", "-20px" );
+	jQuery( "#nothiddendiv" ).css( "left", "-20px" );
+	equal( jQuery( "#nothiddendiv" ).css( "top" ), "-20px", "Ensure negative top values work." );
+	equal( jQuery( "#nothiddendiv" ).css( "left" ), "-20px", "Ensure negative left values work." );
 });
 
 test( "css(Array)", function() {
@@ -790,8 +800,8 @@ test("Do not append px (#9548, #12990)", function() {
 test("css('width') and css('height') should respect box-sizing, see #11004", function() {
 	expect( 4 );
 
-	// Support: Firefox<29, Android 2.3 (Prefixed box-sizing versions).
-	var el_dis = jQuery("<div style='width:300px;height:300px;margin:2px;padding:2px;-webkit-box-sizing:border-box;-moz-box-sizing:border-box;box-sizing:border-box;'>test</div>"),
+	// Support: Android 2.3 (-webkit-box-sizing).
+	var el_dis = jQuery("<div style='width:300px;height:300px;margin:2px;padding:2px;-webkit-box-sizing:border-box;box-sizing:border-box;'>test</div>"),
 		el = el_dis.clone().appendTo("#qunit-fixture");
 
 	equal( el.css("width"), el.css("width", el.css("width")).css("width"), "css('width') is not respecting box-sizing, see #11004");

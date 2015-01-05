@@ -30,7 +30,7 @@ if ( jQuery.css ) {
 	});
 }
 
-// This test checkes CSP only for browsers with "Content-Security-Policy" header support
+// This test checks CSP only for browsers with "Content-Security-Policy" header support
 // i.e. no old WebKit or old Firefox
 testIframeWithCallback( "Check CSP (https://developer.mozilla.org/en-US/docs/Security/CSP) restrictions",
 	"support/csp.php",
@@ -52,6 +52,8 @@ testIframeWithCallback( "Check CSP (https://developer.mozilla.org/en-US/docs/Sec
 		userAgent = window.navigator.userAgent;
 
 	if ( /chrome/i.test( userAgent ) ) {
+		// Catches Chrome on Android as well (i.e. the default
+		// Android browser on Android >= 4.4).
 		expected = {
 			"ajax": true,
 			"boxSizingReliable": true,
@@ -59,6 +61,7 @@ testIframeWithCallback( "Check CSP (https://developer.mozilla.org/en-US/docs/Sec
 			"checkOn": true,
 			"clearCloneStyle": true,
 			"cors": true,
+			"createHTMLDocument": true,
 			"focusinBubbles": false,
 			"noCloneChecked": true,
 			"optDisabled": true,
@@ -67,23 +70,7 @@ testIframeWithCallback( "Check CSP (https://developer.mozilla.org/en-US/docs/Sec
 			"radioValue": true,
 			"reliableMarginRight": true
 		};
-	} else if ( /opera.*version\/12\.1/i.test( userAgent ) ) {
-		expected = {
-			"ajax": true,
-			"boxSizingReliable": true,
-			"checkClone": true,
-			"checkOn": true,
-			"clearCloneStyle": true,
-			"cors": true,
-			"focusinBubbles": false,
-			"noCloneChecked": true,
-			"optDisabled": true,
-			"optSelected": true,
-			"pixelPosition": true,
-			"radioValue": false,
-			"reliableMarginRight": true
-		};
-	} else if ( /trident\/7\.0/i.test( userAgent ) ) {
+	} else if ( /(msie 10\.0|trident\/7\.0)/i.test( userAgent ) ) {
 		expected = {
 			"ajax": true,
 			"boxSizingReliable": false,
@@ -91,22 +78,7 @@ testIframeWithCallback( "Check CSP (https://developer.mozilla.org/en-US/docs/Sec
 			"checkOn": true,
 			"clearCloneStyle": false,
 			"cors": true,
-			"focusinBubbles": true,
-			"noCloneChecked": false,
-			"optDisabled": true,
-			"optSelected": false,
-			"pixelPosition": true,
-			"radioValue": false,
-			"reliableMarginRight": true
-		};
-	} else if ( /msie 10\.0/i.test( userAgent ) ) {
-		expected = {
-			"ajax": true,
-			"boxSizingReliable": false,
-			"checkClone": true,
-			"checkOn": true,
-			"clearCloneStyle": false,
-			"cors": true,
+			"createHTMLDocument": true,
 			"focusinBubbles": true,
 			"noCloneChecked": false,
 			"optDisabled": true,
@@ -123,6 +95,7 @@ testIframeWithCallback( "Check CSP (https://developer.mozilla.org/en-US/docs/Sec
 			"checkOn": true,
 			"clearCloneStyle": false,
 			"cors": false,
+			"createHTMLDocument": true,
 			"focusinBubbles": true,
 			"noCloneChecked": false,
 			"optDisabled": true,
@@ -131,7 +104,7 @@ testIframeWithCallback( "Check CSP (https://developer.mozilla.org/en-US/docs/Sec
 			"radioValue": false,
 			"reliableMarginRight": true
 		};
-	} else if ( /7\.0(\.\d+|) safari/i.test( userAgent ) ) {
+	} else if ( /8.0(\.\d+|) safari/i.test( userAgent ) ) {
 		expected = {
 			"ajax": true,
 			"boxSizingReliable": true,
@@ -139,6 +112,7 @@ testIframeWithCallback( "Check CSP (https://developer.mozilla.org/en-US/docs/Sec
 			"checkOn": true,
 			"clearCloneStyle": true,
 			"cors": true,
+			"createHTMLDocument": false,
 			"focusinBubbles": false,
 			"noCloneChecked": true,
 			"optDisabled": true,
@@ -147,7 +121,7 @@ testIframeWithCallback( "Check CSP (https://developer.mozilla.org/en-US/docs/Sec
 			"radioValue": true,
 			"reliableMarginRight": true
 		};
-	} else if ( /6\.0(\.\d+|) safari/i.test( userAgent ) ) {
+	} else if ( /(6|7)\.0(\.\d+|) safari/i.test( userAgent ) ) {
 		expected = {
 			"ajax": true,
 			"boxSizingReliable": true,
@@ -155,22 +129,7 @@ testIframeWithCallback( "Check CSP (https://developer.mozilla.org/en-US/docs/Sec
 			"checkOn": true,
 			"clearCloneStyle": true,
 			"cors": true,
-			"focusinBubbles": false,
-			"noCloneChecked": true,
-			"optDisabled": true,
-			"optSelected": true,
-			"pixelPosition": false,
-			"radioValue": true,
-			"reliableMarginRight": true
-		};
-	} else if ( /5\.1(\.\d+|) safari/i.test( userAgent ) ) {
-		expected = {
-			"ajax": true,
-			"boxSizingReliable": true,
-			"checkClone": false,
-			"checkOn": false,
-			"clearCloneStyle": true,
-			"cors": true,
+			"createHTMLDocument": true,
 			"focusinBubbles": false,
 			"noCloneChecked": true,
 			"optDisabled": true,
@@ -187,6 +146,7 @@ testIframeWithCallback( "Check CSP (https://developer.mozilla.org/en-US/docs/Sec
 			"checkOn": true,
 			"clearCloneStyle": true,
 			"cors": true,
+			"createHTMLDocument": true,
 			"focusinBubbles": false,
 			"noCloneChecked": true,
 			"optDisabled": true,
@@ -195,7 +155,7 @@ testIframeWithCallback( "Check CSP (https://developer.mozilla.org/en-US/docs/Sec
 			"radioValue": true,
 			"reliableMarginRight": true
 		};
-	} else if ( /iphone os (?:6|7)_/i.test( userAgent ) ) {
+	} else if ( /iphone os 8/i.test( userAgent ) ) {
 		expected = {
 			"ajax": true,
 			"boxSizingReliable": true,
@@ -203,6 +163,41 @@ testIframeWithCallback( "Check CSP (https://developer.mozilla.org/en-US/docs/Sec
 			"checkOn": true,
 			"clearCloneStyle": true,
 			"cors": true,
+			"createHTMLDocument": false,
+			"focusinBubbles": false,
+			"noCloneChecked": true,
+			"optDisabled": true,
+			"optSelected": true,
+			"pixelPosition": false,
+			"radioValue": true,
+			"reliableMarginRight": true
+		};
+	} else if ( /iphone os (6|7)/i.test( userAgent ) ) {
+		expected = {
+			"ajax": true,
+			"boxSizingReliable": true,
+			"checkClone": true,
+			"checkOn": true,
+			"clearCloneStyle": true,
+			"cors": true,
+			"createHTMLDocument": true,
+			"focusinBubbles": false,
+			"noCloneChecked": true,
+			"optDisabled": true,
+			"optSelected": true,
+			"pixelPosition": false,
+			"radioValue": true,
+			"reliableMarginRight": true
+		};
+	} else if ( /android 4\.[0-3]/i.test( userAgent ) ) {
+		expected = {
+			"ajax": true,
+			"boxSizingReliable": true,
+			"checkClone": false,
+			"checkOn": false,
+			"clearCloneStyle": true,
+			"cors": true,
+			"createHTMLDocument": true,
 			"focusinBubbles": false,
 			"noCloneChecked": true,
 			"optDisabled": true,
@@ -219,6 +214,7 @@ testIframeWithCallback( "Check CSP (https://developer.mozilla.org/en-US/docs/Sec
 			"checkOn": false,
 			"clearCloneStyle": false,
 			"cors": true,
+			"createHTMLDocument": true,
 			"focusinBubbles": false,
 			"noCloneChecked": true,
 			"optDisabled": false,
@@ -226,22 +222,6 @@ testIframeWithCallback( "Check CSP (https://developer.mozilla.org/en-US/docs/Sec
 			"pixelPosition": false,
 			"radioValue": true,
 			"reliableMarginRight": false
-		};
-	} else if ( /android 4\.[0-3]/i.test( userAgent ) ) {
-		expected = {
-			"ajax": true,
-			"boxSizingReliable": true,
-			"checkClone": false,
-			"checkOn": false,
-			"clearCloneStyle": true,
-			"cors": true,
-			"focusinBubbles": false,
-			"noCloneChecked": true,
-			"optDisabled": true,
-			"optSelected": true,
-			"pixelPosition": false,
-			"radioValue": true,
-			"reliableMarginRight": true
 		};
 	}
 

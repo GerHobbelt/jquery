@@ -7,6 +7,7 @@ jQuery._evalUrl = function( url ) {
 		url: url,
 		type: "GET",
 		dataType: "script",
+		cache: true,
 		async: false,
 		global: false,
         cache: true,            // do NOT apply cache-busting techniques to this one

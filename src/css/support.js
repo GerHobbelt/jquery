@@ -1,11 +1,12 @@
 define([
 	"../core",
+	"../var/document",
+	"../var/documentElement",
 	"../var/support"
-], function( jQuery, support ) {
+], function( jQuery, document, documentElement, support ) {
 
 (function() {
 	var pixelPositionVal, boxSizingReliableVal,
-		docElem = document.documentElement,
 		container = document.createElement( "div" ),
 		div = document.createElement( "div" );
 
@@ -27,19 +28,19 @@ define([
 	// so they're executed at the same time to save the second computation.
 	function computePixelPositionAndBoxSizingReliable() {
 		div.style.cssText =
-			// Support: Firefox<29, Android 2.3
+			// Support: Android 2.3
 			// Vendor-prefix box-sizing
-			"-webkit-box-sizing:border-box;-moz-box-sizing:border-box;" +
-			"box-sizing:border-box;display:block;margin-top:1%;top:1%;" +
+			"-webkit-box-sizing:border-box;box-sizing:border-box;" +
+			"display:block;margin-top:1%;top:1%;" +
 			"border:1px;padding:1px;width:4px;position:absolute";
 		div.innerHTML = "";
-		docElem.appendChild( container );
+		documentElement.appendChild( container );
 
 		var divStyle = window.getComputedStyle( div, null );
 		pixelPositionVal = divStyle.top !== "1%";
 		boxSizingReliableVal = divStyle.width === "4px";
 
-		docElem.removeChild( container );
+		documentElement.removeChild( container );
 	}
 
 	// Support: node.js jsdom
@@ -72,17 +73,18 @@ define([
 
 				// Reset CSS: box-sizing; display; margin; border; padding
 				marginDiv.style.cssText = div.style.cssText =
-					// Support: Firefox<29, Android 2.3
+					// Support: Android 2.3
 					// Vendor-prefix box-sizing
-					"-webkit-box-sizing:content-box;-moz-box-sizing:content-box;" +
-					"box-sizing:content-box;display:block;margin:0;border:0;padding:0";
+					"-webkit-box-sizing:content-box;box-sizing:content-box;" +
+					"display:block;margin:0;border:0;padding:0";
 				marginDiv.style.marginRight = marginDiv.style.width = "0";
 				div.style.width = "1px";
-				docElem.appendChild( container );
+				documentElement.appendChild( container );
 
 				ret = !parseFloat( window.getComputedStyle( marginDiv, null ).marginRight );
 
-				docElem.removeChild( container );
+				documentElement.removeChild( container );
+				div.removeChild( marginDiv );
 
 				return ret;
 			}

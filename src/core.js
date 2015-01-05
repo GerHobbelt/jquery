@@ -1,5 +1,6 @@
 define([
 	"./var/arr",
+	"./var/document",
 	"./var/slice",
 	"./var/concat",
 	"./var/push",
@@ -8,12 +9,9 @@ define([
 	"./var/toString",
 	"./var/hasOwn",
 	"./var/support"
-], function( arr, slice, concat, push, indexOf, class2type, toString, hasOwn, support ) {
+], function( arr, document, slice, concat, push, indexOf, class2type, toString, hasOwn, support ) {
 
 var
-	// Use the correct document accordingly with window argument (sandbox)
-	document = window.document,
-
 	version = "@VERSION",
 
 	// Define a local copy of jQuery
@@ -250,7 +248,7 @@ jQuery.extend({
 		if ( obj == null ) {
 			return obj + "";
 		}
-		// Support: Android<4.0, iOS<6 (functionish RegExp)
+		// Support: Android<4.0 (functionish RegExp)
 		return typeof obj === "object" || typeof obj === "function" ?
 			class2type[ toString.call(obj) ] || "object" :
 			typeof obj;
@@ -277,25 +275,20 @@ jQuery.extend({
 
 	// args is for internal usage only
 	each: function( obj, callback, args ) {
-		var value,
-			i = 0,
+		var i = 0,
 			length = obj.length,
 			isArray = isArraylike( obj );
 
 		if ( args ) {
 			if ( isArray ) {
 				for ( ; i < length; i++ ) {
-					value = callback.apply( obj[ i ], args );
-
-					if ( value === false ) {
+					if ( callback.apply( obj[ i ], args ) === false ) {
 						break;
 					}
 				}
 			} else {
 				for ( i in obj ) {
-					value = callback.apply( obj[ i ], args );
-
-					if ( value === false ) {
+					if ( callback.apply( obj[ i ], args ) === false ) {
 						break;
 					}
 				}
@@ -305,17 +298,13 @@ jQuery.extend({
 		} else {
 			if ( isArray ) {
 				for ( ; i < length; i++ ) {
-					value = callback.call( obj[ i ], i, obj[ i ] );
-
-					if ( value === false ) {
+					if ( callback.call( obj[ i ], i, obj[ i ] ) === false ) {
 						break;
 					}
 				}
 			} else {
 				for ( i in obj ) {
-					value = callback.call( obj[ i ], i, obj[ i ] );
-
-					if ( value === false ) {
+					if ( callback.call( obj[ i ], i, obj[ i ] ) === false ) {
 						break;
 					}
 				}
@@ -354,6 +343,8 @@ jQuery.extend({
 		return arr == null ? -1 : indexOf.call( arr, elem, i );
 	},
 
+	// Support: Android<4.1, PhantomJS<2
+	// push.apply(_, arraylike) throws on ancient WebKit
 	merge: function( first, second ) {
 		var len = +second.length,
 			j = 0,

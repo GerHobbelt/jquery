@@ -301,7 +301,7 @@ module( "ajax", {
 		}
 	]);
 
-	ajaxTest( "jQuery.ajax() - cross-domain detection", 7, function() {
+	ajaxTest( "jQuery.ajax() - cross-domain detection", 8, function() {
 		function request( url, title, crossDomainOrOptions ) {
 			return jQuery.extend( {
 				dataType: "jsonp",
@@ -351,6 +351,10 @@ module( "ajax", {
 				{
 					crossDomain: true
 				}
+			),
+			request(
+				" http://otherdomain.com",
+				"Cross-domain url with leading space is detected as cross-domain"
 			)
 		];
 	});
@@ -438,6 +442,23 @@ module( "ajax", {
 			},
 			success: true
 		};
+	});
+
+	ajaxTest( "#15160 - jQuery.ajax() - request manually aborted in ajaxSend", 3, {
+		setup: function() {
+			jQuery( document ).on( "ajaxSend", function( e, jqXHR ) {
+				jqXHR.abort();
+			});
+
+			jQuery( document ).on( "ajaxError ajaxComplete", function( e, jqXHR ) {
+				equal( jqXHR.statusText, "abort", "jqXHR.statusText equals abort on global ajaxComplete and ajaxError events" );
+			});
+		},
+		url: url("data/name.html"),
+		error: true,
+		complete: function() {
+			ok( true, "complete" );
+		}
 	});
 
 	ajaxTest( "jQuery.ajax() - context modification", 1, {
@@ -851,7 +872,7 @@ module( "ajax", {
 			{
 				create: function( options ) {
 					var request = jQuery.ajax( options ),
-						promise = request.pipe(function( data ) {
+						promise = request.then(function( data ) {
 							ok( data.data, "first request: JSON results returned (GET, no callback)" );
 							request = jQuery.ajax( this ).done(function( data ) {
 								ok( data.data, "this re-used: JSON results returned (GET, no callback)" );
@@ -1002,9 +1023,6 @@ module( "ajax", {
 			" (no cache)": false
 		},
 		function( label, cache ) {
-			// Support: Opera 12.0
-			// In Opera 12.0, XHR doesn't notify 304 back to the user properly
-			var opera = window.opera && window.opera.version();
 			jQuery.each(
 				{
 					"If-Modified-Since": "if_modified_since.php",
@@ -1024,15 +1042,9 @@ module( "ajax", {
 									ifModified: true,
 									cache: cache,
 									success: function( data, status, jqXHR ) {
-										if ( status === "success" && opera === "12.00" ) {
-											strictEqual( status, "success", "Opera 12.0: Following status is 'success'" );
-											strictEqual( jqXHR.status, 200, "Opera 12.0: XHR status is 200, not 304" );
-											strictEqual( data, "", "Opera 12.0: response body is empty" );
-										} else {
-											strictEqual( status, "notmodified", "Following status is 'notmodified'" );
-											strictEqual( jqXHR.status, 304, "XHR status is 304" );
-											equal( data, null, "no response body is given" );
-										}
+										strictEqual( status, "notmodified", "Following status is 'notmodified'" );
+										strictEqual( jqXHR.status, 304, "XHR status is 304" );
+										equal( data, null, "no response body is given" );
 									},
 									complete: function() {
 										start();

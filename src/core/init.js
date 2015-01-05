@@ -1,9 +1,10 @@
 // Initialize a jQuery object
 define([
 	"../core",
+	"../var/document",
 	"./var/rsingleTag",
 	"../traversing/findFilter"
-], function( jQuery, rsingleTag ) {
+], function( jQuery, document, rsingleTag ) {
 
 // A central reference to the root jQuery(document)
 var rootjQuery,
@@ -11,7 +12,8 @@ var rootjQuery,
 	// A simple way to check for HTML strings
 	// Prioritize #id over <tag> to avoid XSS via location.hash (#9521)
 	// Strict HTML recognition (#11290: must start with <)
-	rquickExpr = /^(?:\s*(<[\w\W]+>)[^>]*|#([\w-]*))$/,
+	// Shortcut simple #id case for speed
+	rquickExpr = /^(?:\s*(<[\w\W]+>)[^>]*|#([\w-]+))$/,
 
 	init = jQuery.fn.init = function( selector, context ) {
 		var match, elem;
@@ -69,9 +71,7 @@ var rootjQuery,
 				} else {
 					elem = document.getElementById( match[2] );
 
-					// Support: Blackberry 4.6
-					// gEBID returns nodes no longer in the document (#6963)
-					if ( elem && elem.parentNode ) {
+					if ( elem ) {
 						// Inject the element directly into the jQuery object
 						this.length = 1;
 						this[0] = elem;

@@ -57,9 +57,14 @@ test("jQuery()", function() {
 	equal( jQuery(undefined).length, 0, "jQuery(undefined) === jQuery([])" );
 	equal( jQuery(null).length, 0, "jQuery(null) === jQuery([])" );
 	equal( jQuery("").length, 0, "jQuery('') === jQuery([])" );
-	equal( jQuery("#").length, 0, "jQuery('#') === jQuery([])" );
-
 	equal( jQuery(obj).selector, "div", "jQuery(jQueryObj) == jQueryObj" );
+
+	// Invalid #id goes to Sizzle which will throw an error (gh-1682)
+	try {
+		jQuery( "#" );
+	} catch ( e ) {
+		ok( true, "Threw an error on #id with no id" );
+	}
 
 	// can actually yield more than one, when iframes are included, the window is an array as well
 	equal( jQuery(window).length, 1, "Correct number of elements generated for jQuery(window)" );
@@ -229,24 +234,27 @@ test( "globalEval execution after script injection (#7862)", 1, function() {
 	ok( window.strictEvalTest - now < 500, "Code executed synchronously" );
 });
 
-test("noConflict", function() {
-	expect(7);
+// This is not run in AMD mode
+if ( jQuery.noConflict ) {
+	test("noConflict", function() {
+		expect(7);
 
-	var $$ = jQuery;
+		var $$ = jQuery;
 
-	strictEqual( jQuery, jQuery.noConflict(), "noConflict returned the jQuery object" );
-	strictEqual( window["jQuery"], $$, "Make sure jQuery wasn't touched." );
-	strictEqual( window["$"], original$, "Make sure $ was reverted." );
+		strictEqual( jQuery, jQuery.noConflict(), "noConflict returned the jQuery object" );
+		strictEqual( window["jQuery"], $$, "Make sure jQuery wasn't touched." );
+		strictEqual( window["$"], original$, "Make sure $ was reverted." );
 
-	jQuery = $ = $$;
+		jQuery = $ = $$;
 
-	strictEqual( jQuery.noConflict(true), $$, "noConflict returned the jQuery object" );
-	strictEqual( window["jQuery"], originaljQuery, "Make sure jQuery was reverted." );
-	strictEqual( window["$"], original$, "Make sure $ was reverted." );
-	ok( $$().pushStack([]), "Make sure that jQuery still works." );
+		strictEqual( jQuery.noConflict(true), $$, "noConflict returned the jQuery object" );
+		strictEqual( window["jQuery"], originaljQuery, "Make sure jQuery was reverted." );
+		strictEqual( window["$"], original$, "Make sure $ was reverted." );
+		ok( $$().pushStack([]), "Make sure that jQuery still works." );
 
-	window["jQuery"] = jQuery = $$;
-});
+		window["jQuery"] = jQuery = $$;
+	});
+}
 
 test("trim", function() {
 	expect(13);
@@ -1361,6 +1369,22 @@ test("jQuery.parseHTML", function() {
 		"parentNode should be documentFragment for wrapMap (variable in manipulation module) elements too" );
 	ok( jQuery.parseHTML("<#if><tr><p>This is a test.</p></tr><#/if>") || true, "Garbage input should not cause error" );
 });
+
+if ( jQuery.support.createHTMLDocument ) {
+	asyncTest("jQuery.parseHTML", function() {
+		expect ( 1 );
+
+		Globals.register("parseHTMLError");
+
+		jQuery.globalEval("parseHTMLError = false;");
+		jQuery.parseHTML( "<img src=x onerror='parseHTMLError = true'>" );
+
+		window.setTimeout(function() {
+			start();
+			equal( window.parseHTMLError, false, "onerror eventhandler has not been called." );
+		}, 2000);
+	});
+}
 
 test("jQuery.parseJSON", function() {
 	expect( 20 );

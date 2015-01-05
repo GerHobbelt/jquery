@@ -10,7 +10,6 @@ module.exports = function( grunt ) {
 	}
 
 	var gzip = require( "gzip-js" ),
-		spawn = require( "child_process" ).spawn,
 		srcHintOptions = readOptionalJSON( "src/.jshintrc" );
 
 	// The concatenated file won't pass onevar
@@ -56,12 +55,9 @@ module.exports = function( grunt ) {
 					"sizzle/dist": "sizzle/dist",
 					"sizzle/LICENSE.txt": "sizzle/LICENSE.txt",
 
-					"npo/npo.js": "native-promise-only/npo.js",
-					"q/LICENSE.txt": "q/LICENSE",
-
 					"qunit/qunit.js": "qunitjs/qunit/qunit.js",
 					"qunit/qunit.css": "qunitjs/qunit/qunit.css",
-					"qunit/MIT-LICENSE.txt": "qunitjs/MIT-LICENSE.txt",
+					"qunit/LICENSE.txt": "qunitjs/LICENSE.txt",
 
 					"requirejs/require.js": "requirejs/require.js",
 
@@ -141,8 +137,7 @@ module.exports = function( grunt ) {
 						"ascii_only": true
 					},
 					banner: "/*! jQuery v<%= pkg.version %> | " +
-						"(c) 2005, <%= grunt.template.today('yyyy') %> jQuery Foundation, Inc. | " +
-						"jquery.org/license */",
+						"(c) jQuery Foundation | jquery.org/license */",
 					compress: {
 						"hoist_funs": false,
 						loops: false,
@@ -161,21 +156,24 @@ module.exports = function( grunt ) {
 
 	grunt.registerTask( "lint", [ "jshint", "jscs" ] );
 
-	grunt.registerTask( "promises-aplus-tests", function() {
+	grunt.registerTask( "node_smoke_test", function() {
 	    var done = this.async();
-		spawn( "node", [
-			"./node_modules/.bin/promises-aplus-tests",
-			"./promises-aplus-adapter.js"
-		], {
-			stdio: "inherit"
-		}).on( "close", function( code ) {
-			done( code === 0 );
+		require( "jsdom" ).env( "", function( errors, window ) {
+			if ( errors ) {
+				console.error( errors );
+				done( false );
+			}
+			require( "./" )( window );
+			done();
 		});
 	});
 
 	// Short list as a high frequency watch task
 	grunt.registerTask( "dev", [ "build:*:*", "lint" ] );
 
-	// Default grunt
+	grunt.registerTask( "test_fast", [ "node_smoke_test" ] );
+
+	grunt.registerTask( "test", [ "default", "test_fast" ] );
+
 	grunt.registerTask( "default", [ "jsonlint", "dev", "uglify", "dist:*", "compare_size" ] );
 };

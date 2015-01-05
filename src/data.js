@@ -1,10 +1,9 @@
 define([
 	"./core",
-	"./var/rnotwhite",
 	"./core/access",
 	"./data/var/dataPriv",
 	"./data/var/dataUser"
-], function( jQuery, rnotwhite, access, dataPriv, dataUser ) {
+], function( jQuery, access, dataPriv, dataUser ) {
 
 //	Implementation Summary
 //
@@ -17,7 +16,7 @@ define([
 //	6. Provide a clear path for implementation upgrade to WeakMap in 2014
 
 var rbrace = /^(?:\{[\w\W]*\}|\[[\w\W]*\])$/,
-	rmultiDash = /([A-Z])/g;
+	rmultiDash = /[A-Z]/g;
 
 function dataAttr( elem, key, data ) {
 	var name;
@@ -25,7 +24,7 @@ function dataAttr( elem, key, data ) {
 	// If nothing was found internally, try to fetch any
 	// data from the HTML5 data-* attribute
 	if ( data === undefined && elem.nodeType === 1 ) {
-		name = "data-" + key.replace( rmultiDash, "-$1" ).toLowerCase();
+		name = "data-" + key.replace( rmultiDash, "-$&" ).toLowerCase();
 		data = elem.getAttribute( name );
 
 		if ( typeof data === "string" ) {
@@ -112,8 +111,7 @@ jQuery.fn.extend({
 		}
 
 		return access( this, function( value ) {
-			var data,
-				camelKey = jQuery.camelCase( key );
+			var data, camelKey;
 
 			// The calling jQuery object (element matches) is not empty
 			// (and therefore has an element appears at this[ 0 ]) and the
@@ -128,6 +126,7 @@ jQuery.fn.extend({
 					return data;
 				}
 
+				camelKey = jQuery.camelCase( key );
 				// Attempt to get data from the cache
 				// with the key camelized
 				data = dataUser.get( elem, camelKey );
@@ -147,6 +146,7 @@ jQuery.fn.extend({
 			}
 
 			// Set the data...
+			camelKey = jQuery.camelCase( key );
 			this.each(function() {
 				// First, attempt to store a copy or reference of any
 				// data that might've been store with a camelCased key.

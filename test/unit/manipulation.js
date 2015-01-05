@@ -2434,3 +2434,28 @@ test( "Validate creation of multiple quantities of certain elements (#13818)", 4
 		});
 	});
 });
+
+asyncTest( "Insert script with data-URI (gh-1887)", 1, function() {
+	Globals.register( "testFoo" );
+	Globals.register( "testSrcFoo" );
+
+	var script = document.createElement( "script" ),
+		fixture = document.getElementById( "qunit-fixture" );
+
+	script.src = "data:text/javascript,testSrcFoo = 'foo';";
+
+	fixture.appendChild( script );
+
+	jQuery( fixture ).append( "<script src=\"data:text/javascript,testFoo = 'foo';\"></script>" );
+
+	setTimeout(function() {
+		if ( window[ "testSrcFoo" ] === "foo" ) {
+			strictEqual( window[ "testFoo" ], window[ "testSrcFoo" ], "data-URI script executed" );
+
+		} else {
+			ok( true, "data-URI script is not supported by this environment" );
+		}
+
+		start();
+	});
+});

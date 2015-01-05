@@ -1266,7 +1266,7 @@ var testToggleClass = function(valueObj) {
 
 	// Cleanup
 	e.removeClass("testD");
-	QUnit.expectJqData( e[ 0 ], "__className__" );
+	QUnit.expectJqData( this, e[ 0 ], "__className__" );
 };
 
 test( "toggleClass(String|boolean|undefined[, boolean])", function() {
@@ -1459,6 +1459,11 @@ test( "should not throw at $(option).val() (#14686)", 1, function() {
 	} catch ( _ ) {
 		ok( false );
 	}
+});
+
+test( "option value not trimmed when setting via parent select", function() {
+	expect( 1 );
+	equal( jQuery( "<select><option> 2</option></select>" ).val( "2" ).val(), "2" );
 });
 
 test( "Insignificant white space returned for $(option).val() (#14858)", function() {
