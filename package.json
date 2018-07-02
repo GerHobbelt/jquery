@@ -2,7 +2,7 @@
   "name": "@gerhobbelt/jquery",
   "title": "jQuery",
   "description": "JavaScript library for DOM operations",
-  "version": "3.0.0-1",
+  "version": "3.0.0-2",
   "main": "dist/jquery.js",
   "homepage": "http://jquery.com",
   "author": {
