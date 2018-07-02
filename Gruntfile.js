@@ -75,14 +75,14 @@ module.exports = function( grunt ) {
 					destPrefix: "external"
 				},
 				files: {
-					"sizzle/dist": "sizzle/dist",
-					"sizzle/LICENSE.txt": "sizzle/LICENSE.txt",
+					"sizzle/dist": "@gerhobbelt/sizzle/dist",
+					"sizzle/LICENSE.txt": "@gerhobbelt/sizzle/LICENSE.txt",
 
 					"npo/npo.js": "native-promise-only/npo.js",
 
-					"qunit/qunit.js": "qunitjs/qunit/qunit.js",
-					"qunit/qunit.css": "qunitjs/qunit/qunit.css",
-					"qunit/LICENSE.txt": "qunitjs/LICENSE.txt",
+					"qunit/qunit.js": "@gerhobbelt/qunit/qunit/qunit.js",
+					"qunit/qunit.css": "@gerhobbelt/qunit/qunit/qunit.css",
+					"qunit/LICENSE.txt": "@gerhobbelt/qunit/LICENSE.txt",
 
 					"qunit-assert-step/qunit-assert-step.js":
 					"qunit-assert-step/qunit-assert-step.js",
