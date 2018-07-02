@@ -13,7 +13,8 @@ module.exports = function( grunt ) {
 	}
 
 	var fs = require( "fs" ),
-		gzip = require( "gzip-js" );
+		gzip = require( "gzip-js" ),
+		isTravis = process.env.TRAVIS;
 
 	if ( !grunt.option( "filename" ) ) {
 		grunt.option( "filename", "jquery.js" );
@@ -151,6 +152,12 @@ module.exports = function( grunt ) {
 			options: {
 				customContextFile: "test/karma.context.html",
 				customDebugFile: "test/karma.debug.html",
+				customLaunchers: {
+					ChromeHeadlessNoSandbox: {
+						base: "ChromeHeadless",
+						flags: [ "--no-sandbox" ]
+					}
+				},
 				frameworks: [ "qunit" ],
 				middleware: [ "mockserver" ],
 				plugins: [
@@ -202,7 +209,7 @@ module.exports = function( grunt ) {
 					{ pattern: "dist/*.map", included: false, served: true },
 					{ pattern: "external/qunit/qunit.css", included: false, served: true },
 					{
-						pattern: "test/**/*.@(js|css|jpg|html|xml)",
+						pattern: "test/**/*.@(js|css|jpg|html|xml|svg)",
 						included: false,
 						served: true
 					}
@@ -214,7 +221,9 @@ module.exports = function( grunt ) {
 				singleRun: true
 			},
 			main: {
-				browsers: [ "ChromeHeadless" ]
+
+				// The Chrome sandbox doesn't work on Travis.
+				browsers: [ isTravis ? "ChromeHeadlessNoSandbox" : "ChromeHeadless" ]
 			},
 
 			// To debug tests with Karma:
@@ -261,7 +270,6 @@ module.exports = function( grunt ) {
 					compress: {
 						"hoist_funs": false,
 						loops: false,
-						unused: false,
 
 						// Support: IE <11
 						// typeofs transformation is unsafe for IE9-10
