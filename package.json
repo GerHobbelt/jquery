@@ -1,8 +1,8 @@
 {
-  "name": "jquery",
+  "name": "@gerhobbelt/jquery",
   "title": "jQuery",
   "description": "JavaScript library for DOM operations",
-  "version": "3.0.0-pre",
+  "version": "3.0.0-1",
   "main": "dist/jquery.js",
   "homepage": "http://jquery.com",
   "author": {
@@ -55,6 +55,7 @@
   "scripts": {
     "build": "npm install && grunt",
     "start": "grunt watch",
-    "test": "grunt test"
+    "test": "grunt test",
+    "pub": "npm publish --access public"
   }
 }
