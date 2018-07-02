@@ -1,5 +1,5 @@
 /*!
- * jQuery JavaScript Library v3.3.1
+ * jQuery JavaScript Library v3.3.1-3
  * https://jquery.com/
  *
  * Includes Sizzle.js
@@ -9,7 +9,7 @@
  * Released under the MIT license
  * https://jquery.org/license
  *
- * Date: 2018-01-20T17:24Z
+ * Date: 2018-07-02T10:45Z
  */
 ( function( global, factory ) {
 
@@ -6437,6 +6437,54 @@ jQuery.extend( {
 	// setting or getting the value
 	cssProps: {},
 
+	// Convert some pixels into another CSS unity.
+	// It's used in $.style() for the += or -=.
+	// * px   : Number.
+	// * unit : String, like "%", "em", "px", ...
+	// * elem : Node, the current element.
+	// * prop : String, the CSS property.
+	pixelsToUnity: function( px, unit, elem, prop ) {
+		switch ( unit ) {
+		case "":
+		case "px":
+			return px; // Don't waste our time if there is no conversion to do.
+		case "em":
+			return px / jQuery.css( elem, "fontSize", "" ); // "em" refers to the fontSize of the current element.
+		case "%":
+			if ( /^(left$|right$|margin|padding)/.test( prop ) ) {
+				prop = "width";
+			} else if ( /^(top|bottom)$/.test( prop ) ) {
+				prop = "height";
+			}
+			elem = /^(relative|absolute|fixed)$/.test( jQuery.css( elem, "position" ) ) ?
+				elem.offsetParent : elem.parentNode;
+			if ( elem ) {
+				prop = jQuery.css( elem, prop, true );
+				if ( prop !== 0 ) {
+					return px / prop * 100;
+				}
+			}
+			return 0;
+		}
+		// The first time we calculate how many pixels there is in 1 meter
+		// for calculate what is 1 inch/cm/mm/etc.
+		if ( jQuery.pixelsToUnity.units === undefined ) {
+			var units = jQuery.pixelsToUnity.units = {},
+				div = document.createElement( "div" );
+			div.style.width = "100cm";
+			document.body.appendChild( div ); // If we don't link the <div> to something, the offsetWidth attribute will be not set correctly.
+			units.mm = div.offsetWidth / 1000;
+			document.body.removeChild( div );
+			units.cm = units.mm * 10;
+			units.in = units.cm * 2.54;
+			units.pt = units.in * 1 / 72;
+			units.pc = units.pt * 12;
+		}
+		// If the unity specified is not recognized we return the value.
+		unit = jQuery.pixelsToUnity.units[ unit ];
+		return unit ? px / unit : px;
+	},
+
 	// Get and set the style property on a DOM Node
 	style: function( elem, name, value, extra ) {
 
@@ -8560,7 +8608,7 @@ var
 
 	// Anchor tag for parsing the document origin
 	originAnchor = document.createElement( "a" );
-	originAnchor.href = location.href;
+	originAnchor.href = window.location.href;
 
 // Base "constructor" for jQuery.ajaxPrefilter and jQuery.ajaxTransport
 function addToPrefiltersOrTransports( structure ) {
@@ -9373,7 +9421,7 @@ jQuery._evalUrl = function( url ) {
 		cache: true,
 		async: false,
 		global: false,
-		"throws": true
+    throws: true
 	} );
 };
 
