@@ -56,11 +56,11 @@
     "promises-aplus-tests": "2.1.2",
     "q": "1.5.1",
     "qunit-assert-step": "1.1.1",
-    "qunit": "2.6.1",
+    "@gerhobbelt/qunit": "2.6.2-6",
     "raw-body": "2.3.3",
     "requirejs": "2.3.5",
     "sinon": "6.0.1",
-    "sizzle": "2.3.3",
+    "@gerhobbelt/sizzle": "2.3.4-4",
     "strip-json-comments": "2.0.1",
     "testswarm": "1.1.0",
     "uglify-js": "3.4.2"
