@@ -8,9 +8,18 @@
 .DS_Store
 .bower.json
 .sizecache.json
+yarn.lock
+package-lock.json
 
-/dist
+npm-debug.log*
+
+# Ignore everything in dist folder except for eslint config
+/dist/*
+!/dist/.eslintrc.json
+
 /node_modules
+
+/test/node_smoke_tests/lib/ensure_iterability.js
 
 # analyze_github script cache:
 __forks.info__/
