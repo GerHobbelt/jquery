@@ -220,6 +220,7 @@ jQuery.extend( {
 			}
 			return 0;
 		}
+
 		// The first time we calculate how many pixels there is in 1 meter
 		// for calculate what is 1 inch/cm/mm/etc.
 		if ( jQuery.pixelsToUnity.units === undefined ) {
@@ -234,6 +235,7 @@ jQuery.extend( {
 			units.pt = units.in * 1 / 72;
 			units.pc = units.pt * 12;
 		}
+
 		// If the unity specified is not recognized we return the value.
 		unit = jQuery.pixelsToUnity.units[ unit ];
 		return unit ? px / unit : px;
